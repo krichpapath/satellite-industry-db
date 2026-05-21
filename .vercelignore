@@ -1,0 +1,14 @@
+canvas/
+portal/
+wb/
+unpack_draft/
+unpack_inception/
+uploads/
+design-canvas.jsx
+extract.py
+start.cmd
+*.docx
+*.html
+Draft ideas for database development.txt
+Inception_report.txt
+README.md
