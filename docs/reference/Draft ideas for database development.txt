@@ -1,0 +1,340 @@
+An industrial database is not just a list of firms. It is a strategic intelligence system that integrates:
+Firm-level information
+Industrial structural data
+Technology/Innovation data
+Human capital data
+Supply Chain & Ecosystem Mapping
+Investment & Financial Indicators
+Sustainability indicators
+When designed properly, it becomes the backbone for:
+Industrial upgrading
+Technology roadmapping implementation
+STI policy design
+Cluster development
+Investment targeting
+Creating an industrial database requires structured, multi-dimensional information that supports policy planning, industrial development, technology roadmapping, investment decisions, and ecosystem coordination.
+
+1️⃣ Firm-Level Information (Core Layer)
+A. Basic Company Profile
+Company name
+Registration number
+Year established
+Ownership structure (local / foreign / JV)
+Parent company (if any)
+Contact information
+Industrial classification (e.g., ISIC, NAICS)
+Geographic location (province, industrial zone, cluster)
+B. Size & Capacity
+Number of employees
+Revenue / turnover
+Production capacity
+Export percentage
+Main markets (domestic/export regions)
+
+2️⃣ Industrial Structure Information
+A. Value Chain Position
+Upstream (raw materials)
+Midstream (components/sub-assembly)
+Downstream (final assembly)
+Aftermarket/service
+B. Product & Service Portfolio
+Main products
+Technology intensity (low/medium/high-tech)
+Standard certifications (ISO, automotive grade, etc.)
+Key customers / OEM linkages
+
+3️⃣ Technology & Innovation Data 
+A. Technology Capability
+Core technologies mastered
+Patents (number, field)
+R&D expenditure
+R&D personnel
+Technology Readiness Level (TRL)
+Digitalization level (Industry 4.0 adoption)
+B. Infrastructure
+Testing facilities
+Lab capability
+Manufacturing processes
+Software/hardware integration capability
+C. Innovation Collaboration
+University partnerships
+Public research institute collaborations
+Participation in joint R&D programs
+Membership in industrial associations
+
+4️⃣ Human Resource & Skill Data
+Workforce skill categories
+Engineers / technicians ratio
+Specialized skills (e.g., battery engineering, AI, embedded systems)
+Training programs participated in
+Skill gaps identified
+
+5️⃣ Supply Chain & Ecosystem Mapping
+To enable ecosystem analysis and SNA (Social Network Analysis):
+Key suppliers
+Key buyers
+Strategic partners
+Membership in clusters
+Participation in government programs
+Network density (optional advanced layer)
+
+6️⃣ Investment & Financial Indicators
+Capital investment trends
+Access to funding
+Government incentives received
+Offset agreements (if relevant)
+Export/import dependency
+
+7️⃣ Sustainability & ESG Indicators 
+Energy consumption
+Renewable energy usage
+Carbon footprint
+Waste management system
+ESG certification
+
+
+An effective industrial database should allow:
+Firm-level drill-down
+Sector-level aggregation
+Value-chain mapping
+Technology capability heatmap
+Gap analysis functionality
+Dashboard visualization
+Periodic updating mechanism
+🔷 1️⃣ Core Database Architecture (Relational Model) can be structured into tables:
+
+1. Firms (Master Table)
+Field Name
+Data Type
+Description
+firm_id (PK)
+Integer
+Unique firm ID
+firm_name
+Text
+Company name
+registration_no
+Text
+Business registration
+year_established
+Integer
+Year founded
+ownership_type
+Text
+Local / Foreign / JV
+parent_company
+Text
+If applicable
+industry_code
+Text
+ISIC / NAICS
+province
+Text
+Location
+industrial_zone
+Text
+Cluster/estate
+website
+Text
+Company website
+
+2. Firm_Size_Finance
+Field Name
+Data Type
+Description
+firm_id (FK)
+Integer
+Link to Firms
+employees_total
+Integer
+Total workforce
+engineers
+Integer
+Number of engineers
+annual_revenue
+Float
+Revenue
+export_percentage
+Float
+% export
+production_capacity
+Text
+Capacity description
+capital_investment
+Float
+Recent investment
+
+3. Products_Services
+Field Name
+Data Type
+Description
+product_id (PK)
+Integer
+Unique ID
+firm_id (FK)
+Integer
+Link to Firms
+product_name
+Text
+Main product
+value_chain_stage
+Text
+Upstream/Midstream/Downstream
+technology_intensity
+Text
+Low/Medium/High
+main_market
+Text
+Domestic/Export region
+certification
+Text
+ISO, automotive grade
+
+4. Technology_Capability
+Field Name
+Data Type
+Description
+tech_id (PK)
+Integer
+Unique ID
+firm_id (FK)
+Integer
+Link to Firms
+core_technology
+Text
+Technology mastered
+TRL_level
+Integer
+Technology Readiness Level
+R&D_expenditure
+Float
+Annual R&D budget
+R&D_personnel
+Integer
+R&D staff
+patents_count
+Integer
+Number of patents
+digitalization_level
+Integer
+Industry 4.0 score (1–5)
+
+5. Infrastructure_Facility
+Field Name
+Data Type
+Description
+facility_id (PK)
+Integer
+Unique ID
+firm_id (FK)
+Integer
+Link to Firms
+testing_lab
+Boolean
+Yes/No
+simulation_tools
+Boolean
+Yes/No
+manufacturing_process
+Text
+SMT, CNC, Injection molding
+software_capability
+Text
+Embedded, AI, Control systems
+
+6. Human_Resource_Profile
+Field Name
+Data Type
+Description
+hr_id (PK)
+Integer
+Unique ID
+firm_id (FK)
+Integer
+Link to Firms
+technician_count
+Integer
+Technicians
+skill_specialization
+Text
+Battery, AI, Power electronics
+training_programs
+Text
+Participation
+skill_gap
+Text
+Identified gaps
+
+7. Supply_Chain_Linkage
+Field Name
+Data Type
+Description
+linkage_id (PK)
+Integer
+Unique ID
+firm_id (FK)
+Integer
+Focal firm
+partner_firm_id
+Integer
+Supplier/Buyer
+linkage_type
+Text
+Supplier/Buyer/Partner
+dependency_level
+Integer
+1–5 scale
+domestic_or_import
+Text
+Domestic/Import
+(Supports ecosystem mapping & Social Network Analysis)
+
+8. Collaboration and Ecosystem Network
+Field Name
+Data Type
+Description
+collab_id (PK)
+Integer
+Unique ID
+firm_id (FK)
+Integer
+Firm
+partner_type
+Text
+University/PRI/Association
+partner_name
+Text
+Institution
+collaboration_type
+Text
+R&D/Training/Testing
+duration
+Integer
+Years
+
+9. Sustainability_ESG
+Field Name
+Data Type
+Description
+esg_id (PK)
+Integer
+Unique ID
+firm_id (FK)
+Integer
+Firm
+energy_consumption
+Float
+Annual usage
+renewable_energy_ratio
+Float
+% renewable
+carbon_emission
+Float
+CO₂ equivalent
+waste_management_system
+Boolean
+Yes/No
+ESG_certification
+Text
+ISO 14001, etc.
+

@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Visual Directions — Thai Satellite Industry DB</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&family=Sarabun:wght@400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600&family=Space+Grotesk:wght@400;500;600&family=Source+Serif+4:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    font-family: "IBM Plex Sans", "Sarabun", system-ui, sans-serif;
+    background: #f0eee9;
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/@babel/standalone@7.29.4/babel.min.js" crossorigin="anonymous"></script>
+<script type="module">
+  import React from 'https://esm.sh/react@19.2.6?dev';
+  import * as ReactDOM from 'https://esm.sh/react-dom@19.2.6?dev';
+  import * as ReactDOMClient from 'https://esm.sh/react-dom@19.2.6/client?dev';
+
+  window.React = React;
+  window.ReactDOM = { ...ReactDOM, ...ReactDOMClient };
+</script>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="canvas/direction-a.jsx"></script>
+<script type="text/babel" src="canvas/direction-b.jsx"></script>
+<script type="text/babel" src="canvas/direction-c.jsx"></script>
+
+<script type="text/babel">
+function App() {
+  return (
+    <DesignCanvas
+      title="Visual Directions"
+      subtitle="Thai Satellite Industry Database · Phase 1 hero screen — pick one"
+    >
+      <DCSection
+        id="hero"
+        title="Firm Overview — the seven-domain shell"
+        subtitle="Same content, three visual registers. Each artboard is a real React render — click ⤢ to focus."
+      >
+        <DCArtboard
+          id="dir-a"
+          label="A · Calm Authority"
+          width={1320}
+          height={900}
+        >
+          <DirectionA />
+        </DCArtboard>
+        <DCArtboard
+          id="dir-b"
+          label="B · Mission Console"
+          width={1320}
+          height={900}
+        >
+          <DirectionB />
+        </DCArtboard>
+        <DCArtboard
+          id="dir-c"
+          label="C · Editorial Data"
+          width={1320}
+          height={900}
+        >
+          <DirectionC />
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection
+        id="notes"
+        title="How to read these"
+        subtitle="All three render the same firm — Starfield Aerospace, JID 0107554000372 — populated across 6 of 7 domains. They differ only in visual register."
+      >
+        <DCArtboard id="readme" label="Notes" width={1320} height={520}>
+          <DirectionNotes />
+        </DCArtboard>
+      </DCSection>
+    </DesignCanvas>
+  );
+}
+
+function DirectionNotes() {
+  const cell = {
+    padding: '24px 28px',
+    borderRight: '1px solid #e5e0d4',
+    background: '#fbfaf7',
+    display: 'flex', flexDirection: 'column', gap: 10,
+    fontFamily: '"IBM Plex Sans", sans-serif',
+    fontSize: 13.5, lineHeight: 1.55, color: '#1f2d3d',
+  };
+  const eyebrow = {
+    fontFamily: '"IBM Plex Mono", monospace',
+    fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase',
+    color: '#8a98ab',
+  };
+  const head = {
+    fontFamily: '"IBM Plex Serif", Georgia, serif',
+    fontWeight: 500, fontSize: 22, lineHeight: 1.1,
+    color: '#0b2340', letterSpacing: '-0.005em',
+  };
+  const dim = { color: '#5b6b80', fontSize: 12.5 };
+  const tag = {
+    display: 'inline-block', padding: '2px 8px', marginRight: 6,
+    background: '#ecf0f5', color: '#5b6b80', borderRadius: 2,
+    fontFamily: '"IBM Plex Mono", monospace', fontSize: 10.5,
+    letterSpacing: '0.04em',
+  };
+  return (
+    <div style={{
+      width: 1320, height: 520, background: '#fbfaf7',
+      display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
+      overflow: 'hidden',
+    }}>
+      <div style={cell}>
+        <div style={eyebrow}>DIRECTION A</div>
+        <div style={head}>Calm Authority</div>
+        <div style={dim}>Government / academic register · light · navy &amp; maroon</div>
+        <div style={{ marginTop: 6 }}>
+          <span style={tag}>BOI / NSTDA tonality</span>
+          <span style={tag}>Plex Serif + Sarabun</span>
+        </div>
+        <p style={{ margin: '8px 0 0' }}>
+          Reads as an annual-report excerpt from a credible institution. Parchment
+          surfaces, navy primary, maroon for accents and required-field cues.
+          Provenance is a quiet but unmissable right-rail card.
+        </p>
+        <p style={dim}>
+          <strong style={{ color: '#0b2340' }}>Best for:</strong> stakeholders who
+          equate seriousness with restraint — likely BOI / NSTDA / GISTDA reviewers.
+        </p>
+        <p style={dim}>
+          <strong style={{ color: '#0b2340' }}>Risk:</strong> may read as
+          conservative to younger industry audiences.
+        </p>
+      </div>
+      <div style={{ ...cell, background: '#070b14', color: '#dbe5f1' }}>
+        <div style={{ ...eyebrow, color: '#5ac8fa' }}>DIRECTION B</div>
+        <div style={{ ...head, color: '#e3ecf7', fontFamily: '"Space Grotesk", sans-serif' }}>Mission Console</div>
+        <div style={{ ...dim, color: '#8aa2c2' }}>
+          Aerospace / technical register · dark · cyan &amp; amber
+        </div>
+        <div style={{ marginTop: 6 }}>
+          <span style={{ ...tag, background: 'rgba(90,200,250,0.1)', color: '#5ac8fa' }}>SpaceX / ESA tonality</span>
+          <span style={{ ...tag, background: 'rgba(90,200,250,0.1)', color: '#5ac8fa' }}>Space Grotesk + Plex Mono</span>
+        </div>
+        <p style={{ margin: '8px 0 0', color: '#dbe5f1' }}>
+          Reads as a mission console — slate surfaces, cyan accent, mono numerics
+          everywhere, status pills with subtle glow. Data is the headline, not
+          the chrome.
+        </p>
+        <p style={{ ...dim, color: '#8aa2c2' }}>
+          <strong style={{ color: '#5ac8fa' }}>Best for:</strong> selling
+          "domain-aware, not a CRUD admin" most viscerally; impresses technical
+          industry audiences.
+        </p>
+        <p style={{ ...dim, color: '#8aa2c2' }}>
+          <strong style={{ color: '#5ac8fa' }}>Risk:</strong> dark UI for
+          government reports can read as "cosmetic" if the audience expects
+          paperwork-style polish.
+        </p>
+      </div>
+      <div style={{ ...cell, background: '#f6f1e6', borderRight: 'none' }}>
+        <div style={{ ...eyebrow, color: '#7a7466' }}>DIRECTION C</div>
+        <div style={{ ...head, color: '#1a1a1a', fontFamily: '"Source Serif 4", serif', fontStyle: 'italic' }}>
+          Editorial Data
+        </div>
+        <div style={{ ...dim, color: '#7a7466' }}>
+          Publication register · cream · ink, teal &amp; rust
+        </div>
+        <div style={{ marginTop: 6 }}>
+          <span style={{ ...tag, background: '#e7dec5', color: '#43403a' }}>FT / OECD tonality</span>
+          <span style={{ ...tag, background: '#e7dec5', color: '#43403a' }}>Source Serif + Plex Sans</span>
+        </div>
+        <p style={{ margin: '8px 0 0', color: '#1a1a1a' }}>
+          Reads as an industry data publication — leded paragraph, rule lines,
+          numbered sections, cited sources at the bottom. Each firm is a "story"
+          rather than a record.
+        </p>
+        <p style={{ ...dim, color: '#43403a' }}>
+          <strong style={{ color: '#1a1a1a' }}>Best for:</strong> demonstrating
+          editorial seriousness; pairs well with Phase 2's eventual public
+          dashboards.
+        </p>
+        <p style={{ ...dim, color: '#43403a' }}>
+          <strong style={{ color: '#1a1a1a' }}>Risk:</strong> editorial polish
+          can read as "magazine" rather than "system" — slower interactions
+          may suffer for the planner persona.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>

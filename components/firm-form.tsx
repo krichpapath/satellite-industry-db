@@ -5,13 +5,16 @@ import { useRouter } from "next/navigation";
 import { loadDb, commit, nextId } from "@/lib/store";
 import type { Firm } from "@/lib/schema";
 import { OWNERSHIP_TYPES } from "@/lib/schema";
-import { Card, SectionTitle, Field, Input, Select, Button, Grid, RequireRole, LockedNote } from "./ui";
+import { apiConfigured, createFirm as createFirmApi } from "@/lib/api";
+import { Card, SectionTitle, Field, Input, Select, Button, Grid, RequireRole, LockedNote, Badge } from "./ui";
 import { useDatabase } from "@/lib/store";
 
 export function FirmForm({ initial }: { initial?: Firm }) {
   const router = useRouter();
   const db = useDatabase();
   const editing = !!initial;
+  const [saving, setSaving] = useState(false);
+  const [saveState, setSaveState] = useState("");
   const [form, setForm] = useState<Firm>(
     initial ?? {
       firm_id: "",
@@ -33,12 +36,15 @@ export function FirmForm({ initial }: { initial?: Firm }) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
-  function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.firm_name.trim()) {
       alert("Firm name is required.");
       return;
     }
+    setSaving(true);
+    setSaveState("");
+
     if (editing) {
       commit(
         { action: "update", table: "firms", id: form.firm_id, summary: `Updated firm ${form.firm_name}` },
@@ -49,16 +55,46 @@ export function FirmForm({ initial }: { initial?: Firm }) {
         }
       );
       router.push(`/firms/${form.firm_id}`);
-    } else {
+      setSaving(false);
+      return;
+    }
+
+    try {
       const db2 = loadDb();
-      const id = nextId("F", db2.firms.map((f) => ({ firm_id: f.firm_id })), "firm_id");
+      const localId = nextId("F", db2.firms.map((f) => ({ firm_id: f.firm_id })), "firm_id");
+      let savedFirm: Firm = {
+        ...form,
+        firm_id: localId,
+        last_updated_ts: new Date().toISOString()
+      };
+      let summary = `Created firm ${form.firm_name}`;
+
+      if (apiConfigured()) {
+        try {
+          savedFirm = await createFirmApi(savedFirm);
+          summary = `Created firm ${form.firm_name} via AWS API`;
+          setSaveState(`Saved to AWS API as firm ${savedFirm.firm_id}. Dataset sync will keep linked tabs aligned.`);
+        } catch (error) {
+          const reason = error instanceof Error ? error.message : "unknown API error";
+          console.warn("AWS firm create failed; saved locally instead.", error);
+          setSaveState(`AWS API failed: ${reason}. Saved locally for prototype continuity.`);
+        }
+      } else {
+        setSaveState("Saved locally. Add NEXT_PUBLIC_API_BASE_URL to enable AWS API writes.");
+      }
+
       commit(
-        { action: "create", table: "firms", id, summary: `Created firm ${form.firm_name}` },
+        { action: "create", table: "firms", id: savedFirm.firm_id, summary },
         (d) => {
-          d.firms.push({ ...form, firm_id: id, last_updated_ts: new Date().toISOString() });
+          d.firms = [
+            ...d.firms.filter((f) => f.firm_id !== savedFirm.firm_id),
+            savedFirm
+          ];
         }
       );
-      router.push("/firms");
+      router.push(`/firms/${savedFirm.firm_id}`);
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -87,6 +123,25 @@ export function FirmForm({ initial }: { initial?: Firm }) {
   return (
     <RequireRole min="Analyst" fallback={<LockedNote min="Analyst" />}>
       <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+        <Card>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <Badge tone={apiConfigured() ? "success" : "neutral"}>
+              {apiConfigured() ? "AWS API enabled" : "Local prototype"}
+            </Badge>
+            <span style={{ fontSize: 13, color: "var(--muted)" }}>
+              {apiConfigured()
+                ? "New firms are sent to POST /firms. All later edits sync the full dataset to AWS."
+                : "Set NEXT_PUBLIC_API_BASE_URL in Vercel to send data to AWS."}
+              {editing && apiConfigured() ? " Saving this form also queues an AWS dataset sync." : ""}
+            </span>
+          </div>
+          {saveState && (
+            <div style={{ marginTop: 10, fontSize: 13, color: "var(--ink-soft)" }}>
+              {saveState}
+            </div>
+          )}
+        </Card>
+
         <Card>
           <SectionTitle hint="Identity fields from Firm-Level Information layer (paper §3.1).">
             Basic Company Profile
@@ -194,7 +249,9 @@ export function FirmForm({ initial }: { initial?: Firm }) {
             <Button variant="ghost" onClick={() => router.back()}>
               Cancel
             </Button>
-            <Button type="submit">{editing ? "Save changes" : "Create firm"}</Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? "Saving..." : editing ? "Save changes" : apiConfigured() ? "Create firm in AWS" : "Create firm"}
+            </Button>
           </div>
         </div>
       </form>

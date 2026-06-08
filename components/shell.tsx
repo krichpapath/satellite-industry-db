@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ensureSeeded, useRole, setRole } from "@/lib/store";
+import { ensureSeeded, syncDatasetFromApi, useRole, setRole, type ApiSyncResult } from "@/lib/store";
+import { API_BASE_URL, apiConfigured } from "@/lib/api";
 import { roleAtLeast, type Role, ROLES } from "@/lib/schema";
 import {
   LayoutDashboard,
@@ -53,9 +54,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const role = useRole();
   const [hovered, setHovered] = useState<string | null>(null);
+  const [apiSync, setApiSync] = useState<ApiSyncResult | null>(null);
 
   useEffect(() => {
     ensureSeeded();
+    void syncDatasetFromApi().then(setApiSync);
   }, []);
 
   return (
@@ -304,9 +307,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           }}
         >
           <div style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
-            Prototype
+            {apiConfigured() ? "AWS API" : "Prototype"}
           </div>
-          <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.5 }}>
+          {apiConfigured() && (
+            <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.5 }}>
+              Connected to <code>{API_BASE_URL}</code>.{" "}
+              {apiSync?.ok
+                ? `Synced ${apiSync.count} firm${apiSync.count === 1 ? "" : "s"} and ${apiSync.tables.products} product rows.`
+                : apiSync
+                  ? `Sync issue: ${apiSync.reason}.`
+                  : "Sync pending."}
+            </div>
+          )}
+          <div style={{ display: apiConfigured() ? "none" : "block", fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.5 }}>
             No backend. Data in <code>localStorage</code>. Role mock for §6.5 access control.
           </div>
         </motion.div>

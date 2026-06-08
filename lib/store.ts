@@ -4,10 +4,17 @@ import { useSyncExternalStore } from "react";
 import type { Database, Role, AuditEntry } from "./schema";
 import { DEFAULT_VOCAB } from "./schema";
 import { SEED } from "./seed";
+import { apiConfigured, getDataset, saveDataset } from "./api";
 
 const KEY = "satdb.v3";
 const ROLE_KEY = "satdb.role";
 const LEGACY_KEYS = ["satdb.v2", "satdb.v1"];
+let apiSyncPromise: Promise<ApiSyncResult> | null = null;
+let apiSavePromise: Promise<void> | null = null;
+
+export type ApiSyncResult =
+  | { ok: true; count: number; tables: Record<string, number> }
+  | { ok: false; reason: string };
 
 function migrate(db: unknown): Database {
   const base = structuredClone(SEED);
@@ -90,19 +97,116 @@ export function loadDb(): Database {
 
 export function saveDb(next: Database) {
   writeRaw(next);
+  queueRemoteSave(next);
 }
 
 export function resetDb() {
   const db = structuredClone(SEED);
   appendAudit(db, "reset", "*", "*", "Database reset to seed");
   writeRaw(db);
+  queueRemoteSave(db);
 }
 
 export function ensureSeeded() {
   if (typeof window === "undefined") return;
   if (!window.localStorage.getItem(KEY)) {
-    writeRaw(structuredClone(SEED));
+    writeRaw(apiConfigured() ? emptyRemoteDb() : structuredClone(SEED));
   }
+}
+
+function emptyRemoteDb(): Database {
+  const base = structuredClone(SEED);
+  return {
+    ...base,
+    firms: [],
+    size_finance: [],
+    products: [],
+    tech: [],
+    facilities: [],
+    hr: [],
+    linkages: [],
+    collabs: [],
+    esg: [],
+    sources: [],
+    audit: []
+  };
+}
+
+function remoteDb(remote: Database) {
+  const base = emptyRemoteDb();
+  return {
+    ...base,
+    ...remote,
+    firms: remote.firms ?? [],
+    size_finance: remote.size_finance ?? [],
+    products: remote.products ?? [],
+    tech: remote.tech ?? [],
+    facilities: remote.facilities ?? [],
+    hr: remote.hr ?? [],
+    linkages: remote.linkages ?? [],
+    collabs: remote.collabs ?? [],
+    esg: remote.esg ?? [],
+    sources: remote.sources ?? [],
+    audit: remote.audit ?? [],
+    vocab: { ...DEFAULT_VOCAB, ...(remote.vocab ?? {}) }
+  };
+}
+
+function tableCounts(db: Database): Record<string, number> {
+  return {
+    firms: db.firms.length,
+    size_finance: db.size_finance.length,
+    products: db.products.length,
+    tech: db.tech.length,
+    facilities: db.facilities.length,
+    hr: db.hr.length,
+    linkages: db.linkages.length,
+    collabs: db.collabs.length,
+    esg: db.esg.length,
+    sources: db.sources.length,
+    audit: db.audit.length
+  };
+}
+
+function queueRemoteSave(db: Database) {
+  if (typeof window === "undefined") return;
+  if (!apiConfigured()) return;
+  const snapshot = JSON.parse(JSON.stringify(db)) as Database;
+  apiSavePromise = saveDataset(snapshot)
+    .then(() => undefined)
+    .catch((error) => {
+      console.warn("Remote dataset save failed", error);
+    });
+}
+
+export function currentRemoteSave() {
+  return apiSavePromise;
+}
+
+export async function syncDatasetFromApi(force = false): Promise<ApiSyncResult> {
+  if (typeof window === "undefined") return { ok: false, reason: "server-render" };
+  if (!apiConfigured()) return { ok: false, reason: "missing-api-base-url" };
+  if (apiSyncPromise && !force) return apiSyncPromise;
+
+  apiSyncPromise = (async () => {
+    try {
+      const remote = remoteDb(await getDataset());
+      writeRaw(remote);
+      return { ok: true, count: remote.firms.length, tables: tableCounts(remote) };
+    } catch (error) {
+      console.warn("Dataset API sync failed", error);
+      return {
+        ok: false,
+        reason: error instanceof Error ? error.message : "unknown-error"
+      };
+    }
+  })();
+
+  return apiSyncPromise;
+}
+
+export async function syncFirmsFromApi(force = false): Promise<ApiSyncResult> {
+  return syncDatasetFromApi(force);
 }
 
 export function exportJson(): string {
@@ -115,6 +219,7 @@ export function importJson(text: string): { ok: boolean; error?: string } {
     const migrated = migrate(parsed);
     appendAudit(migrated, "import", "*", "*", "Database replaced via JSON import");
     writeRaw(migrated);
+    queueRemoteSave(migrated);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: (e as Error).message };
@@ -165,6 +270,7 @@ export function commit(
   }
   appendAudit(db, opts.action, opts.table, opts.id, opts.summary);
   writeRaw(db);
+  queueRemoteSave(db);
 }
 
 export function getRole(): Role {

@@ -1,0 +1,1049 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Phase 1 Plan — Thai Satellite Industry Database</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0d1b2a;
+    --ink-2: #1f2d3d;
+    --muted: #5b6b80;
+    --muted-2: #8a98ab;
+    --rule: #d9dee5;
+    --rule-2: #e8ecf1;
+    --paper: #fbfaf7;
+    --paper-2: #f4f1ea;
+    --navy: #0b2340;
+    --navy-2: #15355e;
+    --accent: #9a3324;       /* deep maroon */
+    --accent-2: #c2410c;
+    --ok: #2f6b4f;
+    --warn: #b45309;
+    --rule-strong: #b5bcc6;
+    --tag: #ecf0f5;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--paper); color: var(--ink); }
+  body {
+    font-family: "IBM Plex Sans", "Sarabun", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-size: 15.5px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  .th { font-family: "Sarabun", "IBM Plex Sans", sans-serif; }
+  .mono { font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace; }
+  .serif { font-family: "IBM Plex Serif", Georgia, serif; }
+
+  .page { max-width: 880px; margin: 0 auto; padding: 56px 48px 120px; }
+
+  /* Masthead */
+  .mast {
+    border-top: 4px solid var(--ink);
+    padding-top: 18px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 16px;
+    align-items: end;
+    margin-bottom: 36px;
+  }
+  .mast .eyebrow {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .mast h1 {
+    font-family: "IBM Plex Serif", Georgia, serif;
+    font-weight: 500;
+    font-size: 40px;
+    line-height: 1.08;
+    margin: 6px 0 0;
+    letter-spacing: -0.01em;
+  }
+  .mast .th-sub {
+    margin-top: 6px;
+    font-family: "Sarabun", sans-serif;
+    font-weight: 400;
+    font-size: 18px;
+    color: var(--muted);
+  }
+  .mast .meta {
+    text-align: right;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .mast .meta .k { color: var(--muted-2); }
+  .mast .meta .v { color: var(--ink-2); }
+
+  /* TOC */
+  .toc {
+    border: 1px solid var(--rule);
+    background: #fff;
+    padding: 18px 22px;
+    margin-bottom: 44px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 32px;
+  }
+  .toc h6 {
+    grid-column: 1 / -1;
+    margin: 0 0 8px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .toc a {
+    display: flex;
+    justify-content: space-between;
+    text-decoration: none;
+    color: var(--ink);
+    padding: 4px 0;
+    border-bottom: 1px dotted var(--rule);
+    font-size: 14px;
+  }
+  .toc a:hover { color: var(--accent); }
+  .toc a .num { color: var(--muted-2); font-family: "IBM Plex Mono", monospace; font-size: 11px; }
+
+  /* Section heads */
+  section { margin-bottom: 56px; scroll-margin-top: 24px; }
+  .sec-head {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 24px;
+    align-items: baseline;
+    border-bottom: 1px solid var(--ink);
+    padding-bottom: 12px;
+    margin-bottom: 24px;
+  }
+  .sec-head .num {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    padding-top: 8px;
+  }
+  .sec-head h2 {
+    font-family: "IBM Plex Serif", Georgia, serif;
+    font-weight: 500;
+    font-size: 26px;
+    margin: 0;
+    letter-spacing: -0.005em;
+  }
+  .sec-head .lede {
+    grid-column: 2;
+    color: var(--muted);
+    font-size: 14.5px;
+    margin-top: 4px;
+  }
+
+  h3 {
+    font-family: "IBM Plex Sans", sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    margin: 28px 0 10px;
+    color: var(--ink);
+    letter-spacing: -0.002em;
+  }
+  h3::before {
+    content: "";
+    display: inline-block;
+    width: 6px; height: 6px;
+    background: var(--accent);
+    margin-right: 10px;
+    transform: translateY(-2px);
+  }
+  h4 {
+    font-family: "IBM Plex Sans", sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin: 22px 0 8px;
+  }
+
+  p { margin: 0 0 12px; }
+  p.lede { color: var(--muted); font-size: 16px; }
+  ul, ol { padding-left: 22px; margin: 8px 0 14px; }
+  li { margin-bottom: 6px; }
+  li::marker { color: var(--muted-2); }
+  code { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; background: var(--paper-2); padding: 1px 5px; border-radius: 3px; color: var(--accent); }
+
+  /* Definition rows / key-value blocks */
+  .kv { display: grid; grid-template-columns: 200px 1fr; gap: 4px 18px; border-top: 1px solid var(--rule); padding-top: 10px; margin-top: 10px; }
+  .kv > dt { font-family: "IBM Plex Mono", monospace; font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding-top: 2px; }
+  .kv > dd { margin: 0 0 8px; }
+  .kv > dd code { background: transparent; padding: 0; color: var(--ink); }
+
+  /* Cards */
+  .card { border: 1px solid var(--rule); background: #fff; padding: 18px 20px; margin: 10px 0 14px; }
+  .card.tinted { background: var(--paper-2); border-color: var(--rule-strong); }
+  .card.dark { background: var(--ink); color: #f4f1ea; border: none; }
+  .card.dark .label { color: #8aa2c2; }
+  .card .label { font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 18px; font-size: 13.5px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { font-weight: 600; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--ink); white-space: nowrap; }
+  tr:hover td { background: var(--paper-2); }
+  td.mono { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; color: var(--ink-2); }
+  td .tag { display: inline-block; padding: 1px 6px; background: var(--tag); border-radius: 2px; font-size: 11px; color: var(--muted); margin-right: 4px; }
+  .tag.ok { background: #e0efe6; color: var(--ok); }
+  .tag.warn { background: #fdeed0; color: var(--warn); }
+  .tag.acc { background: #f8e1dc; color: var(--accent); }
+
+  /* Pull quote / aside */
+  aside.note { border-left: 3px solid var(--accent); background: #fff; padding: 14px 18px; margin: 16px 0; font-size: 14px; color: var(--ink-2); }
+  aside.note strong { color: var(--accent); }
+  aside.note .label { font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 6px; }
+
+  /* Three-column grids */
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin: 12px 0 18px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 12px 0 18px; }
+  .grid-3 .card, .grid-2 .card { margin: 0; }
+
+  /* Route tree */
+  pre.tree, pre.folders {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12.5px;
+    line-height: 1.6;
+    background: var(--ink);
+    color: #e8e3d6;
+    padding: 18px 20px;
+    margin: 14px 0;
+    border-radius: 2px;
+    overflow-x: auto;
+  }
+  pre.tree .c-comment { color: #8aa2c2; }
+  pre.tree .c-route { color: #f0c986; }
+  pre.tree .c-folder { color: #c2d4eb; }
+  pre.tree .c-param { color: #f4a89c; }
+
+  /* Storyboard frames */
+  .storyboard { margin: 18px 0 28px; }
+  .frame {
+    display: grid;
+    grid-template-columns: 56px 1fr;
+    gap: 18px;
+    border-top: 1px solid var(--rule);
+    padding: 14px 0;
+  }
+  .frame .step {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    padding-top: 2px;
+  }
+  .frame .step b { display: block; color: var(--ink); font-size: 13px; font-weight: 600; margin-top: 4px; font-family: "IBM Plex Sans", sans-serif; letter-spacing: 0; }
+  .frame h5 { font-family: "IBM Plex Sans", sans-serif; font-weight: 600; font-size: 15px; margin: 0 0 4px; }
+  .frame .micro { color: var(--accent); font-family: "IBM Plex Mono", monospace; font-size: 12px; background: #f8e1dc; padding: 1px 6px; border-radius: 2px; }
+  .frame .body { font-size: 14px; color: var(--ink-2); }
+  .frame .body p { margin: 4px 0; }
+  .frame .body ul { margin: 6px 0; padding-left: 18px; }
+  .frame .body li { margin-bottom: 2px; font-size: 13.5px; }
+
+  /* Direction swatch chips */
+  .dir-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin: 14px 0 8px; }
+  .dir-card { border: 1px solid var(--rule); background: #fff; padding: 14px 16px; }
+  .dir-card .swatches { display: flex; gap: 4px; margin: 8px 0 10px; }
+  .dir-card .sw { width: 22px; height: 22px; border-radius: 2px; border: 1px solid rgba(0,0,0,0.08); }
+  .dir-card h4 { margin: 0; color: var(--ink); text-transform: none; font-size: 14px; letter-spacing: 0; }
+  .dir-card .tag-row { margin-top: 6px; font-size: 11.5px; color: var(--muted); font-family: "IBM Plex Mono", monospace; letter-spacing: 0.04em; }
+  .dir-card p { font-size: 13px; color: var(--muted); margin: 6px 0 0; }
+
+  /* Footer */
+  footer {
+    margin-top: 80px;
+    padding-top: 18px;
+    border-top: 4px solid var(--ink);
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 16px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  footer .who { font-family: "IBM Plex Mono", monospace; letter-spacing: 0.06em; text-transform: uppercase; }
+
+  /* Stamp */
+  .stamp {
+    display: inline-block;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    transform: rotate(-1deg);
+  }
+
+  .pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-family: "IBM Plex Mono", monospace;
+    letter-spacing: 0.04em;
+    background: var(--tag);
+    color: var(--muted);
+  }
+  .pill.ok { background: #e0efe6; color: var(--ok); }
+  .pill.warn { background: #fdeed0; color: var(--warn); }
+
+  /* Inline figure for ER */
+  .er {
+    border: 1px solid var(--rule);
+    background: #fff;
+    padding: 18px;
+    margin: 12px 0;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11.5px;
+    line-height: 1.6;
+    color: var(--ink-2);
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .er .anchor { color: var(--accent); font-weight: 600; }
+  .er .ref { color: var(--navy-2); }
+  .er .gov { color: var(--ok); }
+
+  hr.soft { border: none; border-top: 1px solid var(--rule); margin: 24px 0; }
+</style>
+</head>
+<body>
+<main class="page">
+
+  <!-- ====================== MASTHEAD ====================== -->
+  <header class="mast">
+    <div>
+      <div class="eyebrow">Phase 1 Plan · Frontend Prototype · Vercel-deployable</div>
+      <h1>Thai Satellite Industry<br/>Database System</h1>
+      <div class="th-sub">ระบบฐานข้อมูลอุตสาหกรรมดาวเทียมไทย — ระยะที่ 1</div>
+    </div>
+    <div class="meta">
+      <div><span class="k">VERSION</span> <span class="v">P1.0 · draft</span></div>
+      <div><span class="k">PREPARED</span> <span class="v">19 May 2026</span></div>
+      <div><span class="k">SCOPE</span> <span class="v">Presentation tier only</span></div>
+      <div><span class="k">AUDIENCE</span> <span class="v">BOI · NSTDA · GISTDA</span></div>
+      <div style="margin-top:10px;"><span class="stamp">For internal review</span></div>
+    </div>
+  </header>
+
+  <!-- ====================== TOC ====================== -->
+  <nav class="toc">
+    <h6>Contents</h6>
+    <a href="#context"><span>Inherited context</span><span class="num">§01</span></a>
+    <a href="#decisions"><span>Decisions fixed for Phase 1</span><span class="num">§02</span></a>
+    <a href="#arch"><span>Frontend architecture</span><span class="num">§03</span></a>
+    <a href="#routes"><span>Route map &amp; folder structure</span><span class="num">§04</span></a>
+    <a href="#data-layer"><span>Mock data-access layer</span><span class="num">§05</span></a>
+    <a href="#design"><span>Design system — 3 directions</span><span class="num">§06</span></a>
+    <a href="#components"><span>Component inventory</span><span class="num">§07</span></a>
+    <a href="#hero"><span>Hero storyboard — Flow 1</span><span class="num">§08</span></a>
+    <a href="#supporting"><span>Supporting storyboards</span><span class="num">§09</span></a>
+    <a href="#fixtures"><span>Mock-data plan &amp; fixtures</span><span class="num">§10</span></a>
+    <a href="#milestones"><span>Milestone breakdown</span><span class="num">§11</span></a>
+    <a href="#handoff"><span>Phase-2 hand-off seams</span><span class="num">§12</span></a>
+    <a href="#defaults"><span>Defaults for open questions</span><span class="num">§13</span></a>
+  </nav>
+
+  <!-- ====================== §01 CONTEXT ====================== -->
+  <section id="context">
+    <div class="sec-head">
+      <div class="num">§01</div>
+      <div>
+        <h2>Inherited context</h2>
+        <div class="lede">What Phase 0 left us with, in two paragraphs.</div>
+      </div>
+    </div>
+
+    <p>The Inception Report defines a central national database for Thailand's satellite industry whose job is to absorb scattered records — from <span class="th">BOI, DBD, NRIIS, GISTDA</span>, research institutes and private firms — and re-publish them as one standardized, governed, queryable corpus. The system has three architectural tiers (Presentation / Application / Data) and rests on five named design principles: <em>Data Integration, Data Transformation, Data Standardization, Data Governance, Scalability</em>. The schema is anchored on <strong>Firm-Level Information</strong>; six additional domains attach via relational keys.</p>
+
+    <p>Phase 1 builds the <strong>Presentation tier only</strong>, with no real backend, database, API, or auth. It ships as a Vercel-deployable frontend prototype whose success metric is explicitly <em>user-experience appeal</em> for the data-planner persona — not feature completeness. The deliverable is the planner's workbench at high fidelity: forms, bulk import, validation feedback, source attribution, and seven-domain navigation, all populated by mock data. Public dashboards, search UX, value-chain network views and ecosystem analysis screens are deferred to Phase 2+.</p>
+
+    <aside class="note">
+      <span class="label">Continuity from Phase 0</span>
+      Eight planner flows, seven data domains, ten must-have features (M1–M15), and five engineering principles carry forward unchanged. The five open content questions (sub-segmentation taxonomy, juristic-ID confirmation, approval depth, confidentiality tiers, priority source agencies) are <strong>deferred</strong> by user direction — Phase 1 uses defensible defaults and ensures no UI commits to a wrong answer. See §13.
+    </aside>
+  </section>
+
+  <!-- ====================== §02 DECISIONS ====================== -->
+  <section id="decisions">
+    <div class="sec-head">
+      <div class="num">§02</div>
+      <div>
+        <h2>Decisions fixed for Phase 1</h2>
+        <div class="lede">What we are no longer debating, with the one-line tradeoff for each.</div>
+      </div>
+    </div>
+
+    <dl class="kv">
+      <dt>Stack</dt>
+      <dd>Next.js 14 (App Router) · TypeScript · Tailwind CSS. <em class="th" style="color:var(--muted)">Tradeoff: more setup ceremony than Vite, but App Router gives us route groups, layouts, and serverless routes for free — exactly the seams Phase 2 needs.</em></dd>
+
+      <dt>Hosting</dt>
+      <dd>Vercel. Preview deployment per branch. Custom domain optional, not in Phase 1 scope.</dd>
+
+      <dt>State</dt>
+      <dd>URL state for filters/tab/firm-id · React Hook Form for forms · Zustand for cross-page draft &amp; import-job state · localStorage for session persistence. <em style="color:var(--muted)">Tradeoff: three stores not one, but each lives where the access pattern is, so swap-cost in Phase 2 is per-feature, not whole-app.</em></dd>
+
+      <dt>Forms &amp; validation</dt>
+      <dd>React Hook Form + Zod. Zod schemas are shared between client and the future server (M6 in the Phase-0 must-haves). <em style="color:var(--muted)">Tradeoff: Zod is the strongest seam we can build now — the rules are portable to a Phase-2 Node/Edge server unchanged.</em></dd>
+
+      <dt>Tables</dt>
+      <dd>TanStack Table v8 + headless rendering with custom Tailwind cells. <em style="color:var(--muted)">Tradeoff: more cell-level code than AG Grid, but it stays inside our design system and ships ~30kb instead of ~300kb.</em></dd>
+
+      <dt>Bilingual</dt>
+      <dd>Full TH/EN parity. Two layers, intentionally separate: <strong>UI chrome i18n</strong> via <code>next-intl</code> (dictionary files, header toggle); <strong>field-level bilingual data</strong> via <code>name_th</code>/<code>name_en</code> pairs in the schema, rendered with a small <code>&lt;BiText&gt;</code> component that picks active or both.</dd>
+
+      <dt>Roles in demo</dt>
+      <dd>Single role — Planner. Approval queue / reviewer-diff (Flow 9) deferred to Phase 1.5.</dd>
+
+      <dt>Mock data</dt>
+      <dd>Generated with <code>@faker-js/faker</code> + a curated Thai-satellite-adjacent firm-name seed list. ~40 firms total, 6 fully populated across all 7 domains.</dd>
+
+      <dt>Density</dt>
+      <dd>Hybrid: compact tables (24–28px rows), comfortable forms (16px base, 12px field gap).</dd>
+
+      <dt>Variations</dt>
+      <dd>Three visual directions explored side-by-side in <code>Visual Directions.html</code> (separate deliverable). Final prototype commits to one — chosen by you.</dd>
+
+      <dt>Dark mode</dt>
+      <dd>Recommendation: <strong>light primary, dark optional</strong> unless visual direction B (Mission Console) wins — in which case dark becomes primary. Decision deferred until §06 is reviewed.</dd>
+
+      <dt>Open content questions</dt>
+      <dd>Deferred. Defaults documented in §13.</dd>
+    </dl>
+  </section>
+
+  <!-- ====================== §03 ARCHITECTURE ====================== -->
+  <section id="arch">
+    <div class="sec-head">
+      <div class="num">§03</div>
+      <div>
+        <h2>Frontend architecture</h2>
+        <div class="lede">Three layers, one mock seam, zero coupling to the future backend.</div>
+      </div>
+    </div>
+
+    <h3>Layered shape</h3>
+    <ol>
+      <li><strong>Routes &amp; pages</strong> — Next.js App Router. Each page is a thin shell that composes feature modules.</li>
+      <li><strong>Feature modules</strong> — one folder per data domain (<code>features/firm</code>, <code>features/valuechain</code>, …). Each owns its forms, Zod schemas, table columns, and feature hooks. This is the unit of ownership and the unit Phase 2 will refactor when the API arrives.</li>
+      <li><strong>Data-access layer</strong> — every screen consumes <code>useFirm(id)</code>, <code>useFirms(filter)</code>, <code>useImportJob()</code>, etc. In Phase 1 these read from in-memory + localStorage; in Phase 2 they swap to <code>fetch</code> against real endpoints. <strong>No screen ever reads the mock store directly.</strong></li>
+      <li><strong>UI primitives</strong> — the design-system components (Button, Input, Select, DataTable, FieldGroup, Drawer, Toast, Stepper, EmptyState, Skeleton, StatCard, BiText, ProvenanceCard).</li>
+    </ol>
+
+    <h3>State boundaries</h3>
+    <table>
+      <thead><tr><th>Concern</th><th>Lives in</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Current firm ID, current domain tab, list filters</td><td>URL params</td><td>Shareable links; back-button works; preview-URL demo-friendly.</td></tr>
+        <tr><td>Form draft state (single record)</td><td>Component state via React Hook Form</td><td>Localized; no global pollution.</td></tr>
+        <tr><td>Multi-step draft (firm onboarding pre-commit)</td><td>Zustand slice <code>useFirmDraft</code> + localStorage mirror</td><td>Survives reload — credibility cue for "we don't lose your work."</td></tr>
+        <tr><td>Bulk-import job (file, rows, errors, commit status)</td><td>Zustand slice <code>useImportJob</code> + localStorage</td><td>Job state is too rich for URL; must persist across tab navigation.</td></tr>
+        <tr><td>Toasts, dialog stack, drawer stack</td><td>Zustand slice <code>useUiStack</code></td><td>Cross-feature, ephemeral.</td></tr>
+        <tr><td>UI language, theme, density</td><td>Zustand slice <code>useUserPrefs</code> + localStorage</td><td>Persists across sessions.</td></tr>
+        <tr><td>Mock firm/source/taxonomy records</td><td>In-memory store hydrated from seed JSON + localStorage overlay</td><td>The single fake "database". All hooks read through it.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Three-tier mapping (Phase 1 vs Phase 2)</h3>
+    <div class="grid-3">
+      <div class="card">
+        <div class="label">Presentation</div>
+        <p style="font-size:13.5px;">Pages, feature modules, UI primitives. <strong>Built in Phase 1.</strong></p>
+      </div>
+      <div class="card tinted">
+        <div class="label">Application (Phase 1 stub)</div>
+        <p style="font-size:13.5px;">Zod validators + mock service functions. Same function signatures the real Node service will expose. <strong>Built in Phase 1.</strong></p>
+      </div>
+      <div class="card">
+        <div class="label">Data (Phase 1 fake)</div>
+        <p style="font-size:13.5px;">In-memory store + localStorage. Phase 2 replaces with Postgres + Prisma; hook signatures unchanged.</p>
+      </div>
+    </div>
+
+    <aside class="note">
+      <span class="label">Three-tier credibility cue</span>
+      Because the Inception Report places validation in the Application layer, the mock service functions deliberately <strong>simulate a 120–300ms latency</strong> and surface server-side error codes (<code>DUPLICATE_DETECTED</code>, <code>UNKNOWN_SEGMENT_CODE</code>, …). The UI renders skeletons during the wait and shows server codes alongside inline messages. This makes the architecture <em>visible</em> in the demo without building real servers.
+    </aside>
+  </section>
+
+  <!-- ====================== §04 ROUTES ====================== -->
+  <section id="routes">
+    <div class="sec-head">
+      <div class="num">§04</div>
+      <div>
+        <h2>Route map &amp; folder structure</h2>
+        <div class="lede">Seven domains under one Firm. Bulk operations top-level. Taxonomy admin parked.</div>
+      </div>
+    </div>
+
+    <h3>Route map</h3>
+<pre class="tree"><span class="c-comment"># Public shell — header toggles TH/EN, theme, role-stub</span>
+<span class="c-route">/</span>                                  <span class="c-comment">→ workbench home (recent firms, import jobs, draft queue)</span>
+<span class="c-route">/firms</span>                             <span class="c-comment">→ firm directory · TanStack table · saved views</span>
+<span class="c-route">/firms/new</span>                         <span class="c-comment">→ Flow 1 entry · juristic-ID first</span>
+<span class="c-route">/firms/<span class="c-param">[id]</span></span>                        <span class="c-comment">→ layout shell · sticky sidebar of 7 domains</span>
+<span class="c-route">/firms/<span class="c-param">[id]</span>/overview</span>               <span class="c-comment">→ firm identity + provenance summary</span>
+<span class="c-route">/firms/<span class="c-param">[id]</span>/valuechain</span>             <span class="c-comment">→ Flow 2 · Upstream/Midstream/Downstream + sub-segment</span>
+<span class="c-route">/firms/<span class="c-param">[id]</span>/technology</span>             <span class="c-comment">→ Flow 3 · core tech, TRL, R&amp;D, patents</span>
+<span class="c-route">/firms/<span class="c-param">[id]</span>/hr</span>                      <span class="c-comment">→ Flow 4 · time-series HR snapshots</span>
+<span class="c-route">/firms/<span class="c-param">[id]</span>/supply-chain</span>            <span class="c-comment">→ Flow 5 · firm-to-firm edges, autocomplete</span>
+<span class="c-route">/firms/<span class="c-param">[id]</span>/investment</span>              <span class="c-comment">→ Flow 6a · revenue, BOI incentives, exports</span>
+<span class="c-route">/firms/<span class="c-param">[id]</span>/esg</span>                     <span class="c-comment">→ Flow 6b · GHG, energy, certifications + confidence flag</span>
+<span class="c-route">/firms/<span class="c-param">[id]</span>/audit</span>                   <span class="c-comment">→ Flow 8 · history, diffs, change_reason</span>
+
+<span class="c-route">/import</span>                            <span class="c-comment">→ Flow 7 · bulk CSV/Excel · staging → dry-run → commit</span>
+<span class="c-route">/import/<span class="c-param">[jobId]</span></span>                  <span class="c-comment">→ in-progress or historical import job</span>
+
+<span class="c-route">/taxonomy</span>                          <span class="c-comment">→ ref_* tables (admin-only in real product · viewable here)</span>
+<span class="c-route">/sources</span>                           <span class="c-comment">→ source registry (provenance ledger)</span>
+<span class="c-route">/about</span>                             <span class="c-comment">→ phase 1 disclaimer, Inception-report citations</span>
+</pre>
+
+    <h3>Folder structure</h3>
+<pre class="folders">src/
+├── app/
+│   ├── layout.tsx                  · shell · header · theme · i18n provider
+│   ├── page.tsx                    · workbench home
+│   ├── firms/
+│   │   ├── page.tsx                · directory
+│   │   ├── new/page.tsx            · Flow 1
+│   │   └── [id]/
+│   │       ├── layout.tsx          · sidebar of 7 domains + provenance panel
+│   │       ├── overview/page.tsx
+│   │       ├── valuechain/page.tsx
+│   │       ├── technology/page.tsx
+│   │       ├── hr/page.tsx
+│   │       ├── supply-chain/page.tsx
+│   │       ├── investment/page.tsx
+│   │       ├── esg/page.tsx
+│   │       └── audit/page.tsx
+│   ├── import/
+│   ├── taxonomy/
+│   ├── sources/
+│   └── about/
+├── features/
+│   ├── firm/                       · forms, schemas, hooks, columns
+│   ├── valuechain/
+│   ├── technology/
+│   ├── hr/
+│   ├── relationship/
+│   ├── financial/
+│   ├── esg/
+│   ├── import/                     · staging, parser, error report
+│   ├── source/                     · provenance card, source registry
+│   └── audit/
+├── lib/
+│   ├── data/                       · mock store, hooks (useFirm, useFirms…)
+│   │   ├── store.ts                · in-memory + localStorage overlay
+│   │   ├── seed/                   · faker generators + curated names
+│   │   └── service/                · mock service fns w/ simulated latency
+│   ├── schema/                     · Zod schemas (one per domain) + shared
+│   ├── i18n/                       · UI dictionaries · next-intl config
+│   └── ui/                         · primitives (Button, Input, Drawer…)
+├── styles/
+│   └── tokens.css                  · design-system tokens (colors, type, space)
+└── messages/
+    ├── en.json
+    └── th.json
+</pre>
+
+    <h3>Layout shell behavior</h3>
+    <ul>
+      <li>The <code>/firms/[id]/layout.tsx</code> renders a left sidebar with the 7 domains as items, each showing a small completeness ring (0–100% based on filled vs total fields in mock store), the active domain highlighted, and a sticky right-side <strong>Provenance panel</strong> reflecting which source backs the currently-viewed record.</li>
+      <li>Header chrome: <span class="th">TH / EN</span> toggle, role-stub badge (Planner), a global "/" command-palette stub, density toggle.</li>
+      <li>Breadcrumbs: <code>Firms › [Firm Name TH/EN] › Technology</code>.</li>
+    </ul>
+  </section>
+
+  <!-- ====================== §05 DATA LAYER ====================== -->
+  <section id="data-layer">
+    <div class="sec-head">
+      <div class="num">§05</div>
+      <div>
+        <h2>Mock data-access layer</h2>
+        <div class="lede">The single seam between Phase 1 and Phase 2. Designed to swap, not to be rewritten.</div>
+      </div>
+    </div>
+
+    <h3>Hook contract</h3>
+    <p>Every page consumes hooks with shapes identical to what a SWR/<wbr>React-Query layer over a real REST API would expose. Phase 2 replaces only the body of <code>lib/data/service/*</code>; hook signatures and return shapes do not change.</p>
+
+<pre class="folders">// lib/data/hooks.ts — examples
+useFirm(id: string)                  → { data: Firm | undefined, status, error, mutate() }
+useFirms(query: FirmsQuery)          → { data: Firm[], total, page, status, error }
+useFirmDraft()                       → { draft, set(patch), submit(), reset() }
+useFuzzyDupeMatch(input: NameOrJID)  → { matches: FuzzyHit[], status }
+useImportJob(jobId?)                 → { job, parse(file), dryRun(), commit() }
+useTaxonomy(name: 'trl'|'valuechain'|'isic'|'esg_cert'|…) → { options, status }
+useSources()                         → { data: Source[], status }
+useAuditLog(firmId)                  → { entries: AuditEntry[], status }
+</pre>
+
+    <h3>Simulated latency &amp; failure modes</h3>
+    <ul>
+      <li>All mock service functions <code>await sleep(rand(120, 380))</code> before returning — felt as the "server thinking" moment that Phase 0 placed in the Application layer.</li>
+      <li>One in every <em>N</em> writes (configurable; default 0, demo mode 1-in-12) returns a synthetic <code>SERVER_VALIDATION_FAILED</code> error so the demo can show the "rerun on the server" round-trip. Off by default — toggle via dev menu.</li>
+      <li>Duplicate-detection on juristic-ID is deterministic against seed data: typing a juristic-ID that prefixes one of the seeded firms produces a real, scored fuzzy hit.</li>
+    </ul>
+
+    <h3>Persistence</h3>
+    <ul>
+      <li>Seed JSON loads on first visit; subsequent CRUD writes a JSON diff overlay into localStorage under <code>satdb:overlay</code>.</li>
+      <li>"Reset demo data" button in the header dev menu wipes the overlay and rehydrates — useful for live demos.</li>
+      <li>Import jobs persist under <code>satdb:import:&lt;jobId&gt;</code> — closing the tab mid-import and reopening it lands back on the dry-run review screen.</li>
+    </ul>
+  </section>
+
+  <!-- ====================== §06 DESIGN SYSTEM ====================== -->
+  <section id="design">
+    <div class="sec-head">
+      <div class="num">§06</div>
+      <div>
+        <h2>Design system — 3 directions to choose from</h2>
+        <div class="lede">Full mocks of each direction live in <code>Visual Directions.html</code>. Below: the strategic summary.</div>
+      </div>
+    </div>
+
+    <div class="dir-row">
+      <div class="dir-card">
+        <h4>A · Calm Authority</h4>
+        <div class="tag-row">GOV / ACADEMIC · LIGHT</div>
+        <div class="swatches">
+          <div class="sw" style="background:#fbfaf7;border:1px solid #d9dee5;"></div>
+          <div class="sw" style="background:#0b2340;"></div>
+          <div class="sw" style="background:#9a3324;"></div>
+          <div class="sw" style="background:#5b6b80;"></div>
+          <div class="sw" style="background:#2f6b4f;"></div>
+        </div>
+        <p>BOI / NSTDA annual-report energy. Parchment surfaces, deep navy, maroon accent for required/errors. Plex Serif headings + IBM Plex Sans + Sarabun. Reads as <em>credible institution</em>.</p>
+      </div>
+      <div class="dir-card">
+        <h4>B · Mission Console</h4>
+        <div class="tag-row">AEROSPACE / TECHNICAL · DARK</div>
+        <div class="swatches">
+          <div class="sw" style="background:#0b1220;"></div>
+          <div class="sw" style="background:#0f1a2b;"></div>
+          <div class="sw" style="background:#5ac8fa;"></div>
+          <div class="sw" style="background:#f59e0b;"></div>
+          <div class="sw" style="background:#9aa9c2;"></div>
+        </div>
+        <p>ESA/SpaceX dashboard energy. Slate surfaces, cyan primary, amber warnings, mono numerics. Space Grotesk + IBM Plex Mono + Noto Sans Thai. Reads as <em>operational, technical, instrument-panel</em>.</p>
+      </div>
+      <div class="dir-card">
+        <h4>C · Editorial Data</h4>
+        <div class="tag-row">PUBLICATION · LIGHT</div>
+        <div class="swatches">
+          <div class="sw" style="background:#f6f1e6;"></div>
+          <div class="sw" style="background:#1a1a1a;"></div>
+          <div class="sw" style="background:#15605a;"></div>
+          <div class="sw" style="background:#c4502f;"></div>
+          <div class="sw" style="background:#7a7466;"></div>
+        </div>
+        <p>FT / Bloomberg / OECD report energy. Cream surfaces, ink, deep teal accent, occasional rust. Source Serif + IBM Plex Sans + Sarabun. Reads as <em>data publication, journalistic seriousness</em>.</p>
+      </div>
+    </div>
+
+    <h3>Common to all three directions</h3>
+    <ul>
+      <li><strong>Typography stack always paired with a Thai face.</strong> Sarabun for A and C (matches Plex's x-height); Noto Sans Thai for B (matches Space Grotesk's geometric feel). Thai-only headings use the Thai face at its native weight, never forced to match Latin metrics with bad letterspacing.</li>
+      <li><strong>Density tokens.</strong> Compact (24px row) and Comfortable (32px row) variants. Tables default compact; forms default comfortable.</li>
+      <li><strong>Icon set.</strong> Lucide — Apache 2.0, comprehensive, line-weight matches all three directions. No emoji.</li>
+      <li><strong>Motion.</strong> 120ms ease-out for entrances, 180ms ease-in-out for state changes. Reduced-motion media query respected.</li>
+      <li><strong>Accessibility floor.</strong> WCAG AA contrast in both themes; focus rings always visible; all interactives keyboard-reachable; <code>aria-live</code> on validation feedback.</li>
+    </ul>
+
+    <aside class="note">
+      <span class="label">Recommendation</span>
+      For an audience of BOI / NSTDA / GISTDA stakeholders, <strong>Direction A (Calm Authority)</strong> is the safest credibility play, and <strong>Direction B (Mission Console)</strong> the strongest "this is a domain product, not a CRUD admin" statement. Direction C is the bold third option — risk: editorial polish reads as "magazine" rather than "system" to government audiences. My vote, if pressed: <strong>A as base, with B's data-density tropes (mono IDs, status chips) selectively borrowed</strong>.
+    </aside>
+  </section>
+
+  <!-- ====================== §07 COMPONENT INVENTORY ====================== -->
+  <section id="components">
+    <div class="sec-head">
+      <div class="num">§07</div>
+      <div>
+        <h2>Component inventory for Phase 1</h2>
+        <div class="lede">What gets built into <code>src/lib/ui/</code> — and what's domain-specific.</div>
+      </div>
+    </div>
+
+    <h3>Primitives (design-system)</h3>
+    <table>
+      <thead><tr><th>Component</th><th>Notes</th><th>Used in</th></tr></thead>
+      <tbody>
+        <tr><td><code>Button</code></td><td>primary / secondary / ghost / danger; sizes sm/md/lg; loading state</td><td>everywhere</td></tr>
+        <tr><td><code>Input</code> / <code>Textarea</code> / <code>NumberInput</code></td><td>label, hint, error, prefix/suffix slots; bilingual-aware sizing</td><td>all forms</td></tr>
+        <tr><td><code>Select</code> / <code>Combobox</code></td><td>typeahead; option groups; renders from <code>useTaxonomy</code></td><td>ref_* fields</td></tr>
+        <tr><td><code>MultiSelect</code> / <code>TagInput</code></td><td>chips, paste-to-split, keyboard remove</td><td>certifications, skills, tech tags</td></tr>
+        <tr><td><code>FileDrop</code></td><td>drag-drop, paste, CSV preview, error overlay</td><td>Flow 7 only</td></tr>
+        <tr><td><code>DataTable</code></td><td>TanStack-backed; sticky header; column resize; row selection; saved views</td><td>directory, taxonomy, sources, staging</td></tr>
+        <tr><td><code>Stepper</code></td><td>Flow 7 — Upload → Validate → Review → Commit</td><td>import</td></tr>
+        <tr><td><code>Drawer</code></td><td>right-side panel for edit-in-context (Flow 5 add-relationship)</td><td>supply-chain</td></tr>
+        <tr><td><code>Dialog</code> / <code>Toast</code></td><td>confirm / destructive; toast queue with 3-deep stack</td><td>everywhere</td></tr>
+        <tr><td><code>EmptyState</code></td><td>illustration-free; icon + headline + CTA</td><td>directory, audit, supply-chain</td></tr>
+        <tr><td><code>Skeleton</code></td><td>row, card, ring; matches eventual content shape</td><td>all async screens</td></tr>
+        <tr><td><code>StatCard</code></td><td>label + value + delta + source-pill</td><td>overview, ESG</td></tr>
+        <tr><td><code>CompletenessRing</code></td><td>0–100% donut, with breakdown tooltip</td><td>sidebar, overview</td></tr>
+        <tr><td><code>BiText</code></td><td>renders <code>{ th, en }</code> — modes: active | both | stacked</td><td>all name/address fields</td></tr>
+        <tr><td><code>ProvenanceCard</code></td><td>source, confidence flag, reporting period, last updated</td><td>persistent right rail</td></tr>
+        <tr><td><code>FuzzyMatchList</code></td><td>scored candidates with name diff and "link instead" CTA</td><td>Flow 1</td></tr>
+        <tr><td><code>DiffView</code></td><td>side-by-side before/after; field-level highlighting</td><td>Flow 8</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ====================== §08 HERO STORYBOARD ====================== -->
+  <section id="hero">
+    <div class="sec-head">
+      <div class="num">§08</div>
+      <div>
+        <h2>Hero storyboard — Flow 1: Onboard a new firm</h2>
+        <div class="lede">The screen that makes the case that this is not a CRUD admin.</div>
+      </div>
+    </div>
+
+    <p class="lede">The planner has a new firm to add — name on a BOI announcement, or a referral from GISTDA. The hero arc is six frames. Validation moments are marked.</p>
+
+    <div class="storyboard">
+
+      <div class="frame">
+        <div class="step">01<b>Open</b></div>
+        <div class="body">
+          <h5>Workbench home → "Add new firm"</h5>
+          <p>Workbench shows: 3 most-recent firms, 1 in-progress import job, 2 drafts. Single primary CTA "Add new firm" with shortcut hint <code class="mono">N</code>. <span class="micro">Microcopy: "Start with the juristic ID — we'll check what's already in the system."</span></p>
+          <ul><li>Keyboard: <code class="mono">N</code> opens the form. <code class="mono">/</code> opens command palette.</li><li>Empty state: if no data ever, copy says "<span class="th">ยังไม่มีบริษัทในระบบ — เริ่มต้นด้วยเลขทะเบียน 13 หลัก</span>" / "Nothing here yet — start with a 13-digit juristic ID."</li></ul>
+        </div>
+      </div>
+
+      <div class="frame">
+        <div class="step">02<b>Identify</b></div>
+        <div class="body">
+          <h5>Juristic-ID-first form (the "credibility moment")</h5>
+          <p>Single full-width field with a <code class="mono">0123456789012</code> placeholder. Other fields are disabled until juristic ID validates regex <code>^\d{13}$</code>. On 13th digit, an inline <em>simulated</em> DBD-lookup spinner runs ~280ms and either (a) returns existing firm → suggest "Link to existing" instead of create, or (b) returns clear → unlocks the rest of the form.</p>
+          <p><span class="micro">Validation moments</span> regex on each keystroke (silent until 13 chars); DBD-lookup on completion; on success, the locked fields fade in with 80ms stagger.</p>
+          <ul>
+            <li><strong>Success state:</strong> green check next to the ID + small text "<span class="th">ไม่พบในระบบ — กรอกต่อได้</span>" / "Not in system — proceed".</li>
+            <li><strong>Match state:</strong> a <code>FuzzyMatchList</code> appears below with scored hits ("0.94 — Thaicom Public Co., Ltd. · last updated 12 days ago by faker-name"). "Use existing" / "Continue creating new (override)" actions.</li>
+            <li><strong>Error state:</strong> 13-digit-but-invalid checksum → server error pill "<code>INVALID_JURISTIC_ID_CHECKSUM</code>" + plain-language line.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="frame">
+        <div class="step">03<b>Describe</b></div>
+        <div class="body">
+          <h5>Identity payload — bilingual name pair, address, dropdowns</h5>
+          <p>Form is comfortable-density: 2-column grid. Bilingual pairs (<code>name_th</code>/<code>name_en</code>) sit side-by-side with a small "swap auto-fill" affordance for the common case where TH is provided and EN is romanized. Ownership type, industry type, founded year. Lat/lon optional with a "drop on map" placeholder (map deferred).</p>
+          <p><span class="micro">Validation moments</span> EN-only ASCII / TH-only on respective fields; founded_year ∈ [1957, current_year]; email format on blur; required fields marked with maroon dot, not with red border, until submit.</p>
+        </div>
+      </div>
+
+      <div class="frame">
+        <div class="step">04<b>Attribute</b></div>
+        <div class="body">
+          <h5>Provenance — the always-on right rail</h5>
+          <p>The right rail is non-collapsible during create. Three required selections: <strong>Source</strong> (typeahead against <code>useSources()</code> with "add new" inline), <strong>Confidence</strong> (reported / estimated / derived — radio), <strong>Reporting period</strong> (defaults to current year). This is the same component that will appear on every domain tab — built once.</p>
+          <p><span class="micro">Why it's persistent</span> Phase 0 made source attribution mandatory on every record. Making the panel persistent is the visual proof that governance is first-class, not a checkbox at the bottom.</p>
+        </div>
+      </div>
+
+      <div class="frame">
+        <div class="step">05<b>Commit</b></div>
+        <div class="body">
+          <h5>Save → simulated server validation → seven-domain landing</h5>
+          <p>Submit triggers ~280ms server-validation skeleton in the right rail ("Application layer validating…"). On success, a toast slides in ("Firm created · 1 source attached · 7 domains awaiting input"), the URL updates to <code>/firms/[id]/overview</code>, and the screen reveals the new <strong>seven-domain shell</strong> with the sidebar showing 7 completeness rings each at 0% except Identity at ~30%.</p>
+          <p><span class="micro">Microcopy direction</span> precise, calm, declarative; never "Yay!" or emoji; always cites the underlying action.</p>
+        </div>
+      </div>
+
+      <div class="frame">
+        <div class="step">06<b>Tour</b></div>
+        <div class="body">
+          <h5>Seven-domain shell — the relational-model-made-visible</h5>
+          <p>Single page, left sidebar lists the 7 domains with completeness rings. Active tab = Overview, showing identity summary, provenance card, and 7 stat cards (one per domain) reading "0 records" with a "+ Add" affordance. The seven-domain layout is the central visual metaphor of the product — every other page extends or modulates it.</p>
+          <p><span class="micro">Keyboard</span> <code class="mono">1</code>–<code class="mono">7</code> jumps to each domain. <code class="mono">G then F</code> back to firms. <code class="mono">E</code> edit.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <h4>Empty &amp; loading states</h4>
+    <ul>
+      <li><strong>Loading:</strong> right-rail shows a skeleton card matching ProvenanceCard's exact shape. Form body fades opacity slightly. No spinners — only skeletons for content, micro-spinners for inline lookups.</li>
+      <li><strong>Empty:</strong> the seven-domain shell on a brand-new firm shows muted "0 records — Add the first" cards in each domain stat; no apology copy, no illustrations.</li>
+    </ul>
+
+    <h4>Keyboard shortcuts (power-user)</h4>
+    <table>
+      <thead><tr><th>Key</th><th>Action</th><th>Where</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">N</td><td>New firm</td><td>global</td></tr>
+        <tr><td class="mono">/</td><td>Command palette</td><td>global</td></tr>
+        <tr><td class="mono">G then F</td><td>Go to firms directory</td><td>global</td></tr>
+        <tr><td class="mono">G then I</td><td>Go to import</td><td>global</td></tr>
+        <tr><td class="mono">1–7</td><td>Switch to domain tab N</td><td>firm detail</td></tr>
+        <tr><td class="mono">E</td><td>Edit current record</td><td>firm detail</td></tr>
+        <tr><td class="mono">⌘S</td><td>Save form</td><td>any form</td></tr>
+        <tr><td class="mono">⌘Z</td><td>Undo last field change</td><td>any form</td></tr>
+        <tr><td class="mono">Esc</td><td>Close drawer / dialog</td><td>everywhere</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ====================== §09 SUPPORTING STORYBOARDS ====================== -->
+  <section id="supporting">
+    <div class="sec-head">
+      <div class="num">§09</div>
+      <div>
+        <h2>Supporting storyboards</h2>
+        <div class="lede">Three more flows at storyboard depth. Remaining flows (HR, investment, ESG, audit) get representative-screen depth in implementation.</div>
+      </div>
+    </div>
+
+    <h3>Flow 7 — Bulk import (throughput proof)</h3>
+    <div class="storyboard">
+      <div class="frame">
+        <div class="step">01<b>Select</b></div>
+        <div class="body">
+          <h5>Domain template picker</h5>
+          <p>Stepper across the top: <em>Upload → Validate → Review → Commit</em>. Step 1: pick which domain template (Firm / Value Chain / Technology / …). Each card shows column count, example row, and "Download template (.xlsx)".</p>
+        </div>
+      </div>
+      <div class="frame">
+        <div class="step">02<b>Drop</b></div>
+        <div class="body">
+          <h5>FileDrop with preview</h5>
+          <p>Large dashed dropzone. On drop: file metadata (rows, encoding, header match), then a preview table of the first 20 rows. Encoding-mismatch error if not UTF-8 — explicit, because Phase 0 named this as a Thai-data risk.</p>
+        </div>
+      </div>
+      <div class="frame">
+        <div class="step">03<b>Dry-run</b></div>
+        <div class="body">
+          <h5>Validation report — the wow moment</h5>
+          <p>Full-table view of every row with two added columns: <code>_row_status</code> (<span class="tag ok">OK</span> / <span class="tag warn">WARN</span> / <span class="tag acc">REJECT</span>) and <code>_error_codes</code> (chips like <code>DUPLICATE_DETECTED</code>, <code>UNKNOWN_SEGMENT_CODE</code>). Top of screen: counts (<em>328 OK · 17 warn · 5 reject</em>). Click any row → drawer with the failing field highlighted + fix-in-staging inline editor.</p>
+          <p><span class="micro">Microcopy</span> "We caught 5 problems before they reach the database. Fix here or commit the OK rows only."</p>
+        </div>
+      </div>
+      <div class="frame">
+        <div class="step">04<b>Fix</b></div>
+        <div class="body">
+          <h5>Inline staging edit</h5>
+          <p>Edit a cell in staging. Re-validates that row only. <code>_row_status</code> flips from REJECT to OK. Mock service uses the same Zod schema as the create form — the demo's promise that "validation rules are portable" becomes visible.</p>
+        </div>
+      </div>
+      <div class="frame">
+        <div class="step">05<b>Commit</b></div>
+        <div class="body">
+          <h5>Selective commit</h5>
+          <p>Three commit options: <em>Commit OK only</em> (default), <em>Commit OK + WARN</em>, <em>Commit all (force)</em> — last requires typed confirmation. Progress bar with row counter; on done, link to created firms in the directory + downloadable "import_batch_xxx.csv" with statuses.</p>
+        </div>
+      </div>
+    </div>
+
+    <h3>Flow 5 — Supply chain (relational-model proof)</h3>
+    <div class="storyboard">
+      <div class="frame">
+        <div class="step">01<b>List</b></div>
+        <div class="body">
+          <h5>Relationships table on the firm's Supply Chain tab</h5>
+          <p>Two tables — Outgoing (this firm → others) and Incoming (others → this firm). Each row: target firm (BiText), relationship type chip, description, source pill, last updated. Empty state: "No relationships recorded — add the first supplier or customer."</p>
+        </div>
+      </div>
+      <div class="frame">
+        <div class="step">02<b>Add</b></div>
+        <div class="body">
+          <h5>Add-relationship drawer (right side)</h5>
+          <p>Typeahead "Target firm" → searches <code>useFirms({ exclude: currentId })</code>; if no match, banner "Not in system — onboard first?" with a link that opens Flow 1 in a side context. Relationship type from <code>ref_relationship_type</code>. Provenance panel persistent. <span class="micro">Validation</span> no self-loop; no duplicate edge with same type.</p>
+        </div>
+      </div>
+      <div class="frame">
+        <div class="step">03<b>Trace</b></div>
+        <div class="body">
+          <h5>Edge with provenance</h5>
+          <p>Saved relationship row shows the source pill alongside the type chip — the same Provenance treatment as every other record. A small footnote at the bottom of the tab: "These relationships will power the value-chain network view in Phase 2." This is the one place we deliberately reference the deferred Phase 2 dashboard — because the planner is doing the work that backs it, and we want to make that work feel meaningful.</p>
+        </div>
+      </div>
+    </div>
+
+    <h3>Flow 8 — Edit &amp; version</h3>
+    <div class="storyboard">
+      <div class="frame">
+        <div class="step">01<b>Edit</b></div>
+        <div class="body">
+          <h5>Pre-populated form + required change reason</h5>
+          <p>Form opens with current values. On save, a modal asks for <strong>change reason</strong> (mandatory, free text capped at 240 chars). For time-series tables (HR / Financial / ESG), the modal explains "This creates a new snapshot — prior period is preserved" with a side-by-side preview of both rows.</p>
+        </div>
+      </div>
+      <div class="frame">
+        <div class="step">02<b>Review</b></div>
+        <div class="body">
+          <h5>Audit tab — diff view</h5>
+          <p>The <code>/audit</code> route per firm shows a timeline of every change with actor, source, reason, and a <code>DiffView</code> that highlights field-level deltas (red = removed value, green = new). Filter by domain and date. The diff view is the same component a Phase-1.5 reviewer screen will use unchanged.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== §10 MOCK DATA ====================== -->
+  <section id="fixtures">
+    <div class="sec-head">
+      <div class="num">§10</div>
+      <div>
+        <h2>Mock-data plan &amp; fixtures</h2>
+        <div class="lede">Generated with faker, seeded with a curated TH-satellite-adjacent name list, persisted to localStorage.</div>
+      </div>
+    </div>
+
+    <h3>Volume &amp; coverage</h3>
+    <ul>
+      <li><strong>~40 firms total.</strong> Bell-curve completeness — 6 are <em>fully populated across all 7 domains</em> (the demo's hero cohort); 12 are partially filled (2–4 domains); the remaining ~22 are bare identity rows (so the planner has something to enrich during a live demo).</li>
+      <li><strong>~120 supply-chain edges</strong> connecting the fully-populated cohort plus selected partial firms — enough density that the deferred Phase-2 network view will visibly have a graph to render.</li>
+      <li><strong>~6 source records</strong> seeded: <span class="th">BOI</span>, <span class="th">DBD</span>, <span class="th">NRIIS</span>, <span class="th">GISTDA</span>, <em>NSTDA research report 2024</em>, <em>Manual entry</em>.</li>
+      <li><strong>~8 import jobs</strong> in history (some succeeded, some with errors) so <code>/import</code> is not an empty screen on first visit.</li>
+      <li><strong>~30 audit entries</strong> across the populated firms.</li>
+    </ul>
+
+    <h3>Realism rules</h3>
+    <ul>
+      <li>Firm names are <strong>plausibly fictional</strong> with a Thai/English pair: e.g., <span class="th">บริษัท สตาร์ฟิลด์ แอโรสเปซ จำกัด</span> / Starfield Aerospace Co., Ltd. — never reuse a real company's exact name.</li>
+      <li>Juristic IDs are valid 13-digit format (passes the regex) but use a fake-data prefix block that won't collide with real DBD numbers — flagged in the seed as <code>__fixture: true</code>.</li>
+      <li>TRL values follow a realistic distribution — mostly 4–7, a few at 8–9, a handful nullable to demo the missing-data UI.</li>
+      <li>ESG confidence flags spread across reported / estimated / derived — about 40/35/25 — so the confidence pill is visibly used.</li>
+      <li>Bilingual content is real bilingual for the hero cohort (both TH and EN authored), and TH-only or EN-only for the rest, so the "missing translation" empty-state has real cases to render.</li>
+    </ul>
+
+    <h3>Persistence</h3>
+    <p>On first load, seed JSON hydrates into the in-memory store. CRUD operations write a JSON diff overlay to localStorage. Closing the tab and returning lands on the same state, including in-flight import jobs and form drafts. A <em>Reset demo data</em> action in the header dev menu drops the overlay; useful before each live demo. <code>satdb:overlay</code>, <code>satdb:import:&lt;jobId&gt;</code>, <code>satdb:firmdraft</code>, <code>satdb:prefs</code> are the four localStorage keys used.</p>
+  </section>
+
+  <!-- ====================== §11 MILESTONES ====================== -->
+  <section id="milestones">
+    <div class="sec-head">
+      <div class="num">§11</div>
+      <div>
+        <h2>Phase 1 milestone breakdown</h2>
+        <div class="lede">Five preview-URL-shippable milestones, each adding a demo-able artifact.</div>
+      </div>
+    </div>
+
+    <table>
+      <thead><tr><th>M</th><th>Name</th><th>Deliverables</th><th>Demo-able artifact</th><th>Risks</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>M0</strong></td>
+          <td>Scaffolding</td>
+          <td>Next.js + TS + Tailwind project; Vercel pipeline; design tokens (chosen direction); typography loaded; bilingual provider; localStorage store skeleton; shell layout with header + sidebar.</td>
+          <td>Preview URL with shell + dark/light, TH/EN toggle, empty workbench.</td>
+          <td>Bilingual font loading flash on first paint — mitigated with <code>font-display: swap</code> + system fallback.</td>
+        </tr>
+        <tr>
+          <td><strong>M1</strong></td>
+          <td>Hero flow shippable</td>
+          <td>Flow 1 (juristic-ID-first onboarding) end-to-end · seven-domain shell · ProvenanceCard · CompletenessRing · FuzzyMatchList · seed data for hero cohort (6 firms).</td>
+          <td>Preview URL where stakeholders can create a firm, see the 7-domain shell appear, and walk the sidebar.</td>
+          <td>Fuzzy-match scoring needs to <em>feel</em> real — invest in a real Levenshtein, not random scores.</td>
+        </tr>
+        <tr>
+          <td><strong>M2</strong></td>
+          <td>Supporting flows + bulk import</td>
+          <td>Flows 2–6 forms · Flow 5 drawer + edges table · Flow 7 import (Upload→Validate→Review→Commit) with synthetic error injection · Flow 8 audit timeline + DiffView.</td>
+          <td>Preview URL: full workflow demo end-to-end, including a live CSV import with errors.</td>
+          <td>Import staging is the largest single feature — keep the parser dumb (PapaParse), put intelligence in Zod re-runs per row.</td>
+        </tr>
+        <tr>
+          <td><strong>M3</strong></td>
+          <td>Polish pass</td>
+          <td>Motion (page transitions, skeletons, ring animations) · empty states · microcopy review (TH + EN, both reviewed) · command palette · keyboard shortcuts · density toggle · dark theme (if scoped).</td>
+          <td>Preview URL that "feels" finished. Stakeholders find no rough edges.</td>
+          <td>Microcopy is the long tail — schedule TH-native review as part of M3, not at the very end.</td>
+        </tr>
+        <tr>
+          <td><strong>M4</strong></td>
+          <td>Demo prep</td>
+          <td>Seeded data tuned for live-demo narrative · screenshots · 5-minute walkthrough notes · "reset data" button verified · custom-domain wiring (if requested) · README explaining mock-vs-real seam.</td>
+          <td>Final preview URL + demo script ready to hand to a presenter.</td>
+          <td>Demo data drift between sessions — fixed by always resetting before a recorded demo.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p style="font-size:13px;color:var(--muted);margin-top:6px;"><em>Cadence assumption:</em> ~1 milestone per 1–2 weeks for a solo developer comfortable with Next.js. Ranges depend on confirmation in §13.</p>
+  </section>
+
+  <!-- ====================== §12 HAND-OFF ====================== -->
+  <section id="handoff">
+    <div class="sec-head">
+      <div class="num">§12</div>
+      <div>
+        <h2>Phase-2 hand-off seams</h2>
+        <div class="lede">What Phase 1 puts in place specifically so Phase 2 is a swap, not a rewrite.</div>
+      </div>
+    </div>
+
+    <table>
+      <thead><tr><th>Seam</th><th>Phase 1</th><th>Phase 2 swap</th></tr></thead>
+      <tbody>
+        <tr><td>Data-access hooks</td><td><code>useFirm</code>, <code>useFirms</code>, etc. read from in-memory store</td><td>Same hooks, bodies replaced by SWR/React-Query over real REST/tRPC</td></tr>
+        <tr><td>Validation</td><td>Zod schemas in <code>lib/schema</code> consumed by client</td><td>Same schemas imported by Node service for server-side rerun (Application layer)</td></tr>
+        <tr><td>Service surface</td><td>Mock functions with deliberate latency in <code>lib/data/service</code></td><td>Same signatures backed by HTTP calls</td></tr>
+        <tr><td>Auth</td><td>Single-role stub (Planner) read from <code>useUserPrefs</code></td><td>Real session via NextAuth or chosen IdP; role gates in middleware</td></tr>
+        <tr><td>Import pipeline</td><td>PapaParse → Zod row-by-row → mock commit</td><td>Same parser, commit replaced by API call that writes to <code>staging_*</code> tables</td></tr>
+        <tr><td>Source registry</td><td>Seeded JSON in <code>lib/data/seed/sources.json</code></td><td>Same shape, replaced by <code>source</code> table read</td></tr>
+        <tr><td>Taxonomy</td><td>Hard-coded ref_* JSON</td><td>Same shape, replaced by admin-managed ref tables</td></tr>
+        <tr><td>Audit log</td><td>Append-only array in store; every mock write pushes</td><td>Same shape, replaced by server-emitted audit rows</td></tr>
+        <tr><td>i18n</td><td><code>next-intl</code> with dictionaries; bilingual data via <code>BiText</code></td><td>Unchanged</td></tr>
+        <tr><td>Env toggle</td><td><code>NEXT_PUBLIC_DATA_MODE=mock</code></td><td><code>=api</code> selects the real service implementation</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ====================== §13 DEFAULTS ====================== -->
+  <section id="defaults">
+    <div class="sec-head">
+      <div class="num">§13</div>
+      <div>
+        <h2>Defaults for the deferred content questions</h2>
+        <div class="lede">Per your direction: skip the open questions, use sane defaults, ensure the UI doesn't commit to any wrong answer.</div>
+      </div>
+    </div>
+
+    <ol>
+      <li><strong>Value-chain sub-segmentation taxonomy.</strong> Phase 1 ships an editable seed taxonomy modeled on SIA's segmentation (Upstream: payload manufacturing, bus manufacturing, AIT services, propulsion, structural components; Midstream: ground systems, launch services, integration; Downstream: data services, applications, value-added services). Loaded from <code>lib/data/seed/ref_valuechain.json</code> — swap a single file to adopt a different taxonomy. <strong>UI marks taxonomy items with a subtle <span class="pill">PROPOSED</span> chip in the taxonomy admin view</strong> so stakeholders see this is a default, not a decision.</li>
+      <li><strong>Juristic-ID natural key.</strong> Defaulted to <em>Thailand's 13-digit DBD juristic person number</em>. The <code>juristic_id</code> field uses regex <code>^\d{13}$</code>. If the project later adopts a different natural key, the field stays — only the validator changes.</li>
+      <li><strong>Approval depth.</strong> Single-role demo per your call. The schema already carries <code>status ∈ {draft, pending_review, published, retired}</code> so when Phase 1.5 adds reviewers, no migration is needed.</li>
+      <li><strong>Confidentiality tiers.</strong> Defaulted to <em>row-level</em> for Phase 1 — every record carries a <code>confidentiality ∈ {public, restricted, confidential}</code> field, rendered as a small chip. No per-field <code>access_level</code> column yet; if Phase 2 needs field-level masking, the migration is "add a column," not "rebuild the schema."</li>
+      <li><strong>Priority source agencies for bulk import.</strong> Phase 1 ships templates for the four most-cited: BOI, DBD, NRIIS, GISTDA. Each template uses the project's canonical column names; the demo shows column-name mismatches landing as <code>UNKNOWN_COLUMN</code> errors rather than silent failures.</li>
+    </ol>
+
+    <aside class="note">
+      <span class="label">Discipline</span>
+      Every defaulted choice has a single-source-of-truth file the steering committee can amend without code changes: <code>lib/data/seed/ref_valuechain.json</code>, <code>lib/data/seed/ref_relationship_type.json</code>, <code>lib/data/seed/ref_esg_cert.json</code>, etc. We are choosing today's defaults but reserving Phase 2's right to change them.
+    </aside>
+  </section>
+
+  <!-- ====================== FOOTER ====================== -->
+  <footer>
+    <div class="who">Phase 1 Plan · v0 draft · Satellite DB</div>
+    <div>Pair this document with <em>Visual Directions.html</em> — pick a direction, then M0 starts.</div>
+  </footer>
+
+</main>
+</body>
+</html>

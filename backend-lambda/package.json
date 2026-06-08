@@ -1,0 +1,16 @@
+{
+  "name": "backend-lambda",
+  "version": "1.0.0",
+  "description": "AWS Lambda API for the Satellite Industry Database prototype.",
+  "main": "index.mjs",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "pg": "^8.21.0"
+  }
+}

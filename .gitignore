@@ -5,17 +5,4 @@ tsconfig.tsbuildinfo
 .env*
 !.env.example
 
-# Reference / source artifacts (kept locally, not deployed)
-canvas/
-portal/
-wb/
-unpack_draft/
-unpack_inception/
-uploads/
-design-canvas.jsx
-extract.py
-start.cmd
-*.docx
-*.html
-Draft ideas for database development.txt
-Inception_report.txt
+# Keep docs/ trackable for GitHub. Dependency folders stay ignored by node_modules/.

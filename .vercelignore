@@ -1,3 +1,19 @@
+# Local build/cache/secrets
+node_modules/
+.next/
+out/
+tsconfig.tsbuildinfo
+.env*
+!.env.example
+
+# Reference documents, old prototypes, and local backend packaging
+docs/
+backend-lambda/
+database/
+tools/
+start.cmd
+
+# Legacy root artifacts, kept here as guardrails if new files are added later
 canvas/
 portal/
 wb/
@@ -6,7 +22,6 @@ unpack_inception/
 uploads/
 design-canvas.jsx
 extract.py
-start.cmd
 *.docx
 *.html
 Draft ideas for database development.txt

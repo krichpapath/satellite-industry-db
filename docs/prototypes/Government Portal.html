@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1440" />
+<title>Firm Overview · Thai Satellite Industry Database</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  html, body {
+    margin: 0; padding: 0;
+    background: #f1f4f9;
+    font-family: Sarabun, system-ui, sans-serif;
+    color: #0f1729;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  * { box-sizing: border-box; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/@babel/standalone@7.29.4/babel.min.js" crossorigin="anonymous"></script>
+<script type="module">
+  import React from 'https://esm.sh/react@19.2.6?dev';
+  import * as ReactDOM from 'https://esm.sh/react-dom@19.2.6?dev';
+  import * as ReactDOMClient from 'https://esm.sh/react-dom@19.2.6/client?dev';
+
+  window.React = React;
+  window.ReactDOM = { ...ReactDOM, ...ReactDOMClient };
+</script>
+
+<script type="text/babel" src="portal/charts.jsx"></script>
+<script type="text/babel" src="portal/portal.jsx"></script>
+
+<script type="text/babel">
+  const root = ReactDOM.createRoot(document.getElementById('root'));
+  root.render(<Portal />);
+</script>
+</body>
+</html>
