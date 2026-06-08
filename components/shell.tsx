@@ -19,7 +19,6 @@ import {
   Database as DbIcon,
   ScrollText,
   BookOpenText,
-  Lock,
   ChevronRight
 } from "lucide-react";
 
@@ -29,18 +28,18 @@ const NAV: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard, min: "Public" },
   { href: "/search", label: "Search", icon: Search, min: "Public" },
   { href: "/firms", label: "Firms", icon: Building2, min: "Public" },
-  { href: "/value-chain", label: "Value Chain", icon: GitBranch, min: "Public" },
-  { href: "/network", label: "Ecosystem", icon: Network, min: "Public" },
-  { href: "/gap-analysis", label: "Gap Analysis", icon: Target, min: "Public" },
-  { href: "/sources", label: "Sources", icon: DbIcon, min: "Analyst" },
-  { href: "/taxonomy", label: "Taxonomy", icon: BookOpenText, min: "Analyst" },
+  { href: "/value-chain", label: "Value Chain", icon: GitBranch, min: "Admin" },
+  { href: "/network", label: "Ecosystem", icon: Network, min: "Admin" },
+  { href: "/gap-analysis", label: "Gap Analysis", icon: Target, min: "Admin" },
+  { href: "/sources", label: "Sources", icon: DbIcon, min: "Admin" },
+  { href: "/taxonomy", label: "Taxonomy", icon: BookOpenText, min: "Admin" },
   { href: "/audit", label: "Audit", icon: ScrollText, min: "Admin" },
   { href: "/admin", label: "Admin", icon: Settings, min: "Admin" }
 ];
 
 const roleDesc: Record<Role, string> = {
   Public: "Read-only. Cannot edit any record.",
-  Analyst: "Can edit firm & sub-tables, sources, taxonomy.",
+  Analyst: "Can edit firm & sub-tables.",
   Admin: "Full access — audit, import/export, wipe."
 };
 
@@ -167,6 +166,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         >
           {NAV.map((item) => {
             const visible = roleAtLeast(role, item.min);
+            if (!visible) return null;
+
             const active =
               item.href === "/" ? pathname === "/" : pathname?.startsWith(item.href);
             const Icon = item.icon;
@@ -176,37 +177,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               hidden: { opacity: 0, x: -12 },
               visible: { opacity: 1, x: 0, transition: { duration: 0.3 } }
             };
-
-            if (!visible) {
-              return (
-                <motion.div
-                  key={item.href}
-                  variants={itemVariant}
-                  whileHover={{ x: 2 }}
-                  onHoverStart={() => setHovered(item.href)}
-                  onHoverEnd={() => setHovered(null)}
-                  title={`Requires ${item.min} role`}
-                  style={{
-                    position: "relative",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    padding: "9px 12px",
-                    borderRadius: 9,
-                    fontSize: 14,
-                    color: "var(--muted)",
-                    opacity: 0.55,
-                    cursor: "not-allowed",
-                    background: isHover ? "var(--surface-muted)" : "transparent",
-                    transition: "background 180ms ease"
-                  }}
-                >
-                  <Icon size={17} />
-                  {item.label}
-                  <Lock size={11} style={{ marginLeft: "auto" }} />
-                </motion.div>
-              );
-            }
 
             return (
               <motion.div

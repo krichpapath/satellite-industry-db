@@ -304,10 +304,29 @@ export async function getDataset(): Promise<Database> {
   return normalizeDatabase(data);
 }
 
+function validRangeNumber(value: unknown, min: number, max: number): number | undefined {
+  if (value === "" || value === null || value === undefined) return undefined;
+  const next = Number(value);
+  return Number.isFinite(next) && next >= min && next <= max ? next : undefined;
+}
+
+function sanitizeDatasetForApi(db: Database): Database {
+  return {
+    ...db,
+    products: db.products.map((product) => {
+      const next = { ...product };
+      const trl = validRangeNumber(product.product_trl, 1, 9);
+      if (trl === undefined) delete next.product_trl;
+      else next.product_trl = trl;
+      return next;
+    })
+  };
+}
+
 export async function saveDataset(db: Database): Promise<{ ok: boolean; counts?: Record<string, number> }> {
   const res = await apiFetch("/dataset", {
     method: "PUT",
-    body: JSON.stringify(db)
+    body: JSON.stringify(sanitizeDatasetForApi(db))
   });
   const data: unknown = await res.json();
   if (isRecord(data)) {

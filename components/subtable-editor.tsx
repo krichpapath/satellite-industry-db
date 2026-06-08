@@ -18,7 +18,7 @@ import type { Database } from "@/lib/schema";
 
 export type FieldDef =
   | { name: string; label: string; type: "text"; required?: boolean }
-  | { name: string; label: string; type: "number"; min?: number; max?: number; required?: boolean }
+  | { name: string; label: string; type: "number"; min?: number; max?: number; required?: boolean; nullable?: boolean }
   | { name: string; label: string; type: "bool" }
   | { name: string; label: string; type: "enum"; options: string[]; required?: boolean };
 
@@ -54,18 +54,46 @@ export function SubTableEditor<T>({
     const o: Row = { firm_id: firmId };
     for (const f of fields) {
       if (f.name === "firm_id") continue;
-      o[f.name] = f.type === "bool" ? false : f.type === "number" ? 0 : "";
+      o[f.name] = f.type === "bool" ? false : f.type === "number" ? (f.nullable ? "" : 0) : "";
     }
     return o;
   }
 
+  function isBlank(value: unknown) {
+    return value === "" || value === null || value === undefined;
+  }
+
+  function normalizeForm(form: Row): Row {
+    const next = { ...form };
+    for (const f of fields) {
+      if (f.type !== "number") continue;
+      const value = next[f.name];
+      if (isBlank(value)) {
+        if (f.nullable) delete next[f.name];
+        continue;
+      }
+      next[f.name] = Number(value);
+    }
+    return next;
+  }
+
   function validate(form: Row): string | null {
     for (const f of fields) {
+      const v = form[f.name];
       if ("required" in f && f.required) {
-        const v = form[f.name];
-        if (v === "" || v === null || v === undefined) {
+        if (isBlank(v)) {
           return `${f.label} is required.`;
         }
+      }
+      if (f.type === "number") {
+        if (isBlank(v)) {
+          if (f.nullable && !f.required) continue;
+          return `${f.label} is required.`;
+        }
+        const n = Number(v);
+        if (!Number.isFinite(n)) return `${f.label} must be a valid number.`;
+        if (f.min !== undefined && n < f.min) return `${f.label} must be at least ${f.min}.`;
+        if (f.max !== undefined && n > f.max) return `${f.label} must be at most ${f.max}.`;
       }
     }
     return null;
@@ -74,10 +102,11 @@ export function SubTableEditor<T>({
   function onCreate(form: Row) {
     const err = validate(form);
     if (err) return alert(err);
+    const normalized = normalizeForm(form);
     const db = loadDb();
     const list = db[table] as unknown as Row[];
     const id = nextId(idPrefix, list, idField);
-    const row = { ...form, [idField]: id, firm_id: firmId };
+    const row = { ...normalized, [idField]: id, firm_id: firmId };
     commit(
       { action: "create", table: String(table), id, summary: `Added ${title} ${id}`, firmId },
       (d) => {
@@ -90,13 +119,14 @@ export function SubTableEditor<T>({
   function onUpdate(form: Row) {
     const err = validate(form);
     if (err) return alert(err);
+    const normalized = normalizeForm(form);
     const id = String(form[idField]);
     commit(
       { action: "update", table: String(table), id, summary: `Updated ${title} ${id}`, firmId },
       (d) => {
         const list = d[table] as unknown as Row[];
         const idx = list.findIndex((r) => String(r[idField]) === id);
-        if (idx >= 0) list[idx] = form;
+        if (idx >= 0) list[idx] = normalized;
       }
     );
     setEditing(null);
@@ -230,8 +260,10 @@ function RowModal({
             {f.type === "number" && (
               <Input
                 type="number"
-                value={Number(form[f.name] ?? 0)}
-                onChange={(e) => update(f.name, parseFloat(e.target.value) || 0)}
+                min={f.min}
+                max={f.max}
+                value={form[f.name] === null || form[f.name] === undefined ? "" : String(form[f.name])}
+                onChange={(e) => update(f.name, e.target.value === "" ? (f.nullable ? "" : 0) : Number(e.target.value))}
               />
             )}
             {f.type === "bool" && (

@@ -155,18 +155,17 @@ export default function DashboardPage() {
             >
               <span className="pulse-dot" /> Live · localStorage prototype
             </div>
-            <h1 style={{ margin: 0, fontSize: 28, fontWeight: 600 }}>Industry Dashboard</h1>
+            <h1 style={{ margin: 0, fontSize: 28, fontWeight: 600 }}>Product / Service Records</h1>
             <div style={{ marginTop: 6, fontSize: 14, opacity: 0.85, maxWidth: 620 }}>
-              Thai satellite industry overview — value chain, technology, ecosystem.
+              Product and service portfolio across all registered satellite firms.
             </div>
           </div>
           <div style={{ display: "flex", gap: 18, fontSize: 12, opacity: 0.9 }}>
             <span>
-              Records ·{" "}
-              <strong className="tabular">{db.firms.length + db.products.length + db.tech.length}</strong>
+              Firms · <strong className="tabular">{db.firms.length}</strong>
             </span>
             <span>
-              Sources · <strong className="tabular">{db.sources?.length ?? 0}</strong>
+              Products · <strong className="tabular">{db.products.length}</strong>
             </span>
           </div>
         </div>
@@ -213,7 +212,7 @@ export default function DashboardPage() {
             <SectionTitle hint="Distribution of products/services by value-chain segment.">
               <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
                 <Layers size={18} style={{ color: "var(--accent)" }} />
-                Value Chain Distribution
+                Product / Service Records
               </span>
             </SectionTitle>
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>

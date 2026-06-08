@@ -229,13 +229,15 @@ export function Modal({
   title,
   onClose,
   children,
-  footer
+  footer,
+  maxWidth = 560
 }: {
   open: boolean;
   title: string;
   onClose: () => void;
   children: React.ReactNode;
   footer?: React.ReactNode;
+  maxWidth?: number | string;
 }) {
   if (!open) return null;
   return (
@@ -259,7 +261,7 @@ export function Modal({
           borderRadius: 14,
           padding: 22,
           width: "100%",
-          maxWidth: 560,
+          maxWidth,
           maxHeight: "90vh",
           overflow: "auto",
           boxShadow: "0 30px 70px rgba(16,24,40,0.25)"
