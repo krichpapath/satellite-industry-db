@@ -78,7 +78,7 @@ export function ThailandMap({
         })}
       </svg>
       <div style={{ fontSize: 11, color: "var(--muted)", textAlign: "center", marginTop: 4 }}>
-        Stylised outline · circle size = firm count · click to filter
+        Stylised outline · circle size = company count · click to filter
       </div>
     </div>
   );

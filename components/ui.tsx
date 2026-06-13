@@ -41,6 +41,7 @@ export function Button({
   type = "button",
   disabled,
   title,
+  ariaLabel,
   style
 }: {
   children: React.ReactNode;
@@ -49,6 +50,7 @@ export function Button({
   type?: "button" | "submit" | "reset";
   disabled?: boolean;
   title?: string;
+  ariaLabel?: string;
   style?: React.CSSProperties;
 }) {
   const palette: Record<BtnVariant, React.CSSProperties> = {
@@ -61,6 +63,7 @@ export function Button({
     <button
       type={type}
       title={title}
+      aria-label={ariaLabel}
       onClick={onClick}
       disabled={disabled}
       style={{
@@ -269,7 +272,9 @@ export function Modal({
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
           <h3 style={{ margin: 0, fontSize: 17, fontWeight: 600 }}>{title}</h3>
-          <Button variant="ghost" onClick={onClose} style={{ padding: "4px 10px" }}>✕</Button>
+          <Button variant="ghost" onClick={onClose} ariaLabel={`Close ${title}`} style={{ padding: "4px 10px" }}>
+            Close
+          </Button>
         </div>
         <div>{children}</div>
         {footer && <div style={{ marginTop: 18, display: "flex", justifyContent: "flex-end", gap: 8 }}>{footer}</div>}
@@ -289,8 +294,8 @@ export function Table<T>({
 }) {
   if (rows.length === 0) return <EmptyState message={empty} />;
   return (
-    <div style={{ overflowX: "auto" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+    <div style={{ overflowX: "auto", maxWidth: "100%" }}>
+      <table style={{ width: "100%", minWidth: 720, borderCollapse: "collapse", fontSize: 14 }}>
         <thead>
           <tr style={{ borderBottom: "1px solid var(--line)" }}>
             {columns.map((c) => (
@@ -477,13 +482,4 @@ export function Tabs({
       })}
     </div>
   );
-}
-
-export function StageBadge({ stage }: { stage: string }) {
-  const map: Record<string, "accent" | "warn" | "success"> = {
-    Upstream: "accent",
-    Midstream: "warn",
-    Downstream: "success"
-  };
-  return <Badge tone={map[stage] ?? "neutral"}>{stage}</Badge>;
 }

@@ -1,6 +1,10 @@
-export type ValueChainStage = "Upstream" | "Midstream" | "Downstream";
+import {
+  COMPONENT_SYSTEMS,
+  allComponentNames,
+  modulesForSystem
+} from "./component-taxonomy";
+
 export type OwnershipType = "Local" | "Foreign" | "JV";
-export type TechIntensity = "Low" | "Medium" | "High";
 export type LinkageType = "Supplier" | "Buyer" | "Partner";
 export type PartnerType = "University" | "PRI" | "Association";
 export type CollabType = "R&D" | "Training" | "Testing";
@@ -35,26 +39,12 @@ export interface FirmSizeFinance {
   offset_agreement?: string;
 }
 
-export type SIACategory = "Satellite Manufacturing" | "Launch Services" | "Satellite Services" | "Ground Equipment";
-export type ITUService = "FSS" | "MSS" | "BSS" | "EESS" | "RDSS" | "SRS" | "N/A";
-export type OrbitType = "LEO" | "MEO" | "GEO" | "HEO" | "Sub-orbital" | "N/A";
-export type FrequencyBand = "L" | "S" | "C" | "X" | "Ku" | "Ka" | "V" | "Q" | "N/A";
-
 export interface ProductService {
   product_id: string;
   firm_id: string;
-  product_name: string;
-  value_chain_stage: ValueChainStage;
-  technology_intensity: TechIntensity;
-  main_market: string;
-  certification?: string;
-  sia_category?: SIACategory;
-  itu_service_class?: ITUService;
-  orbit_type?: OrbitType;
-  frequency_band?: FrequencyBand;
-  naics_code?: string;
-  hs_code?: string;
-  product_trl?: number;
+  component_name: string;
+  system: string;
+  module: string;
   description?: string;
 }
 
@@ -137,20 +127,15 @@ export interface AuditEntry {
 
 export interface Vocab {
   ownership_types: string[];
-  value_chain_stages: string[];
-  tech_intensities: string[];
   linkage_types: string[];
   partner_types: string[];
   collab_types: string[];
   provinces: string[];
   industry_codes: string[];
   core_technologies: string[];
-  sia_categories: string[];
-  itu_services: string[];
-  orbit_types: string[];
-  frequency_bands: string[];
-  naics_codes: string[];
-  hs_codes: string[];
+  component_systems: string[];
+  component_modules: string[];
+  component_names: string[];
 }
 
 export interface Database {
@@ -168,23 +153,14 @@ export interface Database {
   vocab: Vocab;
 }
 
-export const VALUE_CHAIN_STAGES: ValueChainStage[] = ["Upstream", "Midstream", "Downstream"];
 export const OWNERSHIP_TYPES: OwnershipType[] = ["Local", "Foreign", "JV"];
-export const TECH_INTENSITIES: TechIntensity[] = ["Low", "Medium", "High"];
 export const LINKAGE_TYPES: LinkageType[] = ["Supplier", "Buyer", "Partner"];
 export const PARTNER_TYPES: PartnerType[] = ["University", "PRI", "Association"];
 export const COLLAB_TYPES: CollabType[] = ["R&D", "Training", "Testing"];
 export const ROLES: Role[] = ["Public", "Analyst", "Admin"];
 
-export const SIA_CATEGORIES: SIACategory[] = ["Satellite Manufacturing", "Launch Services", "Satellite Services", "Ground Equipment"];
-export const ITU_SERVICES: ITUService[] = ["FSS", "MSS", "BSS", "EESS", "RDSS", "SRS", "N/A"];
-export const ORBIT_TYPES: OrbitType[] = ["LEO", "MEO", "GEO", "HEO", "Sub-orbital", "N/A"];
-export const FREQUENCY_BANDS: FrequencyBand[] = ["L", "S", "C", "X", "Ku", "Ka", "V", "Q", "N/A"];
-
 export const DEFAULT_VOCAB: Vocab = {
   ownership_types: [...OWNERSHIP_TYPES],
-  value_chain_stages: [...VALUE_CHAIN_STAGES],
-  tech_intensities: [...TECH_INTENSITIES],
   linkage_types: [...LINKAGE_TYPES],
   partner_types: [...PARTNER_TYPES],
   collab_types: [...COLLAB_TYPES],
@@ -211,12 +187,9 @@ export const DEFAULT_VOCAB: Vocab = {
     "Hybrid rocket propulsion",
     "LEO IoT NB-IoT over satellite"
   ],
-  sia_categories: [...SIA_CATEGORIES],
-  itu_services: [...ITU_SERVICES],
-  orbit_types: [...ORBIT_TYPES],
-  frequency_bands: [...FREQUENCY_BANDS],
-  naics_codes: ["334220", "336414", "517410", "541330", "541715", "541512"],
-  hs_codes: ["8802.60", "8803.90", "8525.60", "8526.91", "8526.92", "8517.62"]
+  component_systems: [...COMPONENT_SYSTEMS],
+  component_modules: COMPONENT_SYSTEMS.flatMap((system) => modulesForSystem(system)),
+  component_names: allComponentNames()
 };
 
 export function roleAtLeast(current: Role, needed: Role): boolean {

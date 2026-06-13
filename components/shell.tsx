@@ -4,9 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ensureSeeded, syncDatasetFromApi, useRole, setRole, type ApiSyncResult } from "@/lib/store";
-import { API_BASE_URL, apiConfigured } from "@/lib/api";
-import { roleAtLeast, type Role, ROLES } from "@/lib/schema";
+import { ensureSeeded, setRole, syncDatasetFromApi, useRole } from "@/lib/store";
+import { roleAtLeast, ROLES, type Role } from "@/lib/schema";
 import {
   LayoutDashboard,
   Search,
@@ -27,8 +26,8 @@ type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; min:
 const NAV: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard, min: "Public" },
   { href: "/search", label: "Search", icon: Search, min: "Public" },
-  { href: "/firms", label: "Firms", icon: Building2, min: "Public" },
-  { href: "/value-chain", label: "Value Chain", icon: GitBranch, min: "Admin" },
+  { href: "/firms", label: "Companies", icon: Building2, min: "Public" },
+  { href: "/value-chain", label: "System Coverage", icon: GitBranch, min: "Admin" },
   { href: "/network", label: "Ecosystem", icon: Network, min: "Admin" },
   { href: "/gap-analysis", label: "Gap Analysis", icon: Target, min: "Admin" },
   { href: "/sources", label: "Sources", icon: DbIcon, min: "Admin" },
@@ -39,8 +38,8 @@ const NAV: NavItem[] = [
 
 const roleDesc: Record<Role, string> = {
   Public: "Read-only. Cannot edit any record.",
-  Analyst: "Can edit firm & sub-tables.",
-  Admin: "Full access — audit, import/export, wipe."
+  Analyst: "Can edit companies and component records.",
+  Admin: "Full access: audit, import/export, wipe."
 };
 
 const roleColor: Record<Role, string> = {
@@ -53,16 +52,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const role = useRole();
   const [hovered, setHovered] = useState<string | null>(null);
-  const [apiSync, setApiSync] = useState<ApiSyncResult | null>(null);
 
   useEffect(() => {
     ensureSeeded();
-    void syncDatasetFromApi().then(setApiSync);
+    void syncDatasetFromApi();
   }, []);
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", minHeight: "100vh" }}>
+    <div className="app-shell" style={{ display: "grid", gridTemplateColumns: "240px 1fr", minHeight: "100vh" }}>
       <aside
+        className="app-shell__sidebar"
         style={{
           borderRight: "1px solid var(--line)",
           padding: "22px 16px",
@@ -76,12 +75,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <motion.div
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
+          transition={{ duration: 0.3 }}
           style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}
         >
           <motion.div
-            whileHover={{ rotate: 15, scale: 1.08 }}
-            transition={{ type: "spring", stiffness: 300, damping: 12 }}
+            whileHover={{ rotate: 12, scale: 1.04 }}
+            transition={{ type: "spring", stiffness: 300, damping: 16 }}
             style={{
               width: 36,
               height: 36,
@@ -89,8 +88,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               borderRadius: 9,
               display: "grid",
               placeItems: "center",
-              color: "#fff",
-              boxShadow: "0 4px 12px rgba(15, 118, 110, 0.25)"
+              color: "#fff"
             }}
           >
             <Satellite size={20} />
@@ -104,7 +102,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 10, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
             <motion.span
-              animate={{ scale: [1, 1.3, 1] }}
+              animate={{ scale: [1, 1.25, 1] }}
               transition={{ duration: 2, repeat: Infinity }}
               style={{
                 width: 6,
@@ -128,12 +126,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               color: "var(--ink)",
               fontSize: 13,
               fontWeight: 500,
-              cursor: "pointer",
-              transition: "border-color 200ms ease, box-shadow 200ms ease",
-              outline: "none"
+              cursor: "pointer"
             }}
-            onFocus={(e) => (e.currentTarget.style.boxShadow = `0 0 0 3px ${roleColor[role]}33`)}
-            onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
           >
             {ROLES.map((r) => (
               <option key={r} value={r}>
@@ -147,7 +141,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 4 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.18 }}
               style={{ fontSize: 11, color: "var(--muted)", marginTop: 6, lineHeight: 1.4 }}
             >
               {roleDesc[role]}
@@ -156,32 +150,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <motion.nav
+          className="app-shell__nav"
           initial="hidden"
           animate="visible"
           variants={{
             hidden: {},
-            visible: { transition: { staggerChildren: 0.04, delayChildren: 0.1 } }
+            visible: { transition: { staggerChildren: 0.035, delayChildren: 0.08 } }
           }}
           style={{ display: "flex", flexDirection: "column", gap: 2 }}
         >
           {NAV.map((item) => {
-            const visible = roleAtLeast(role, item.min);
-            if (!visible) return null;
+            if (!roleAtLeast(role, item.min)) return null;
 
-            const active =
-              item.href === "/" ? pathname === "/" : pathname?.startsWith(item.href);
+            const active = item.href === "/" ? pathname === "/" : pathname?.startsWith(item.href);
             const Icon = item.icon;
             const isHover = hovered === item.href;
-
-            const itemVariant = {
-              hidden: { opacity: 0, x: -12 },
-              visible: { opacity: 1, x: 0, transition: { duration: 0.3 } }
-            };
 
             return (
               <motion.div
                 key={item.href}
-                variants={itemVariant}
+                variants={{
+                  hidden: { opacity: 0, x: -10 },
+                  visible: { opacity: 1, x: 0, transition: { duration: 0.24 } }
+                }}
                 onHoverStart={() => setHovered(item.href)}
                 onHoverEnd={() => setHovered(null)}
                 style={{ position: "relative" }}
@@ -233,11 +224,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   }}
                 >
                   <motion.span
-                    animate={{
-                      scale: isHover ? 1.15 : 1,
-                      rotate: isHover && !active ? -6 : 0
-                    }}
-                    transition={{ type: "spring", stiffness: 400, damping: 14 }}
+                    animate={{ scale: isHover ? 1.12 : 1, rotate: isHover && !active ? -5 : 0 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 16 }}
                     style={{ display: "inline-flex" }}
                   >
                     <Icon size={17} />
@@ -261,41 +249,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             );
           })}
         </motion.nav>
-
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6, duration: 0.4 }}
-          whileHover={{ y: -2, boxShadow: "0 8px 20px rgba(16, 24, 40, 0.08)" }}
-          style={{
-            marginTop: 28,
-            padding: "14px 12px",
-            background: "var(--surface-muted)",
-            borderRadius: 10,
-            border: "1px solid var(--line-soft)",
-            cursor: "default"
-          }}
-        >
-          <div style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
-            {apiConfigured() ? "AWS API" : "Prototype"}
-          </div>
-          {apiConfigured() && (
-            <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.5 }}>
-              Connected to <code>{API_BASE_URL}</code>.{" "}
-              {apiSync?.ok
-                ? `Synced ${apiSync.count} firm${apiSync.count === 1 ? "" : "s"} and ${apiSync.tables.products} product rows.`
-                : apiSync
-                  ? `Sync issue: ${apiSync.reason}.`
-                  : "Sync pending."}
-            </div>
-          )}
-          <div style={{ display: apiConfigured() ? "none" : "block", fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.5 }}>
-            No backend. Data in <code>localStorage</code>. Role mock for §6.5 access control.
-          </div>
-        </motion.div>
       </aside>
 
-      <main style={{ padding: "28px 32px", overflowX: "hidden" }}>{children}</main>
+      <main className="app-shell__main" style={{ padding: "28px 32px", overflowX: "hidden" }}>{children}</main>
     </div>
   );
 }

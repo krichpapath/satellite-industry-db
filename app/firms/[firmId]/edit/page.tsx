@@ -9,14 +9,14 @@ export default function EditFirmPage({ params }: { params: Promise<{ firmId: str
   const db = useDatabase();
   const firm = db.firms.find((f) => f.firm_id === firmId);
 
-  if (!firm) return <div>Firm not found.</div>;
+  if (!firm) return <div>Company not found.</div>;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <header>
         <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600 }}>Edit {firm.firm_name}</h1>
         <div style={{ color: "var(--muted)", marginTop: 6, fontSize: 14 }}>
-          Update identity fields for this firm.
+          Update company profile fields.
         </div>
       </header>
       <FirmForm initial={firm} />

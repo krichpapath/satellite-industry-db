@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useDatabase } from "@/lib/store";
 import {
@@ -12,78 +12,85 @@ import {
   Grid,
   Button,
   Table,
-  Badge,
-  StageBadge
+  Badge
 } from "@/components/ui";
-import { VALUE_CHAIN_STAGES, OWNERSHIP_TYPES, TECH_INTENSITIES } from "@/lib/schema";
+import { OWNERSHIP_TYPES } from "@/lib/schema";
+import { COMPONENT_SYSTEMS, componentsForModule, modulesForSystem } from "@/lib/component-taxonomy";
 
 export default function SearchPage() {
   const db = useDatabase();
   const [keyword, setKeyword] = useState("");
   const [advanced, setAdvanced] = useState(false);
-  const [stage, setStage] = useState("");
+  const [system, setSystem] = useState("");
+  const [module, setModule] = useState("");
+  const [componentName, setComponentName] = useState("");
   const [ownership, setOwnership] = useState("");
-  const [techIntensity, setTechIntensity] = useState("");
   const [province, setProvince] = useState("");
-  const [minTRL, setMinTRL] = useState("");
 
   const provinces = useMemo(
-    () => Array.from(new Set(db.firms.map((f) => f.province))).sort(),
+    () => Array.from(new Set(db.firms.map((company) => company.province))).sort(),
     [db.firms]
   );
 
+  const modules = modulesForSystem(system);
+  const componentOptions = componentsForModule(system, module);
+
   const results = useMemo(() => {
     const kw = keyword.trim().toLowerCase();
-    return db.firms.filter((f) => {
+    return db.firms.filter((company) => {
       if (kw) {
+        const components = db.products.filter((component) => component.firm_id === company.firm_id);
         const hay = [
-          f.firm_name,
-          f.industry_code,
-          f.province,
-          f.industrial_zone ?? "",
-          f.parent_company ?? "",
-          f.registration_no
-        ]
-          .join(" ")
-          .toLowerCase();
+          company.firm_name,
+          company.province,
+          company.industrial_zone ?? "",
+          company.parent_company ?? "",
+          company.registration_no,
+          ...components.flatMap((component) => [component.component_name, component.system, component.module, component.description ?? ""])
+        ].join(" ").toLowerCase();
         if (!hay.includes(kw)) return false;
       }
-      if (ownership && f.ownership_type !== ownership) return false;
-      if (province && f.province !== province) return false;
-      if (stage) {
-        const has = db.products.some((p) => p.firm_id === f.firm_id && p.value_chain_stage === stage);
-        if (!has) return false;
-      }
-      if (techIntensity) {
-        const has = db.products.some(
-          (p) => p.firm_id === f.firm_id && p.technology_intensity === techIntensity
+      if (ownership && company.ownership_type !== ownership) return false;
+      if (province && company.province !== province) return false;
+      if (system || module || componentName) {
+        const has = db.products.some((component) =>
+          component.firm_id === company.firm_id &&
+          (!system || component.system === system) &&
+          (!module || component.module === module) &&
+          (!componentName || component.component_name === componentName)
         );
         if (!has) return false;
       }
-      if (minTRL) {
-        const t = db.tech.find((x) => x.firm_id === f.firm_id);
-        if (!t || t.trl_level < parseInt(minTRL, 10)) return false;
-      }
       return true;
     });
-  }, [db, keyword, ownership, province, stage, techIntensity, minTRL]);
+  }, [db, keyword, ownership, province, system, module, componentName]);
 
   function reset() {
     setKeyword("");
-    setStage("");
+    setSystem("");
+    setModule("");
+    setComponentName("");
     setOwnership("");
-    setTechIntensity("");
     setProvince("");
-    setMinTRL("");
+  }
+
+  function onSystemChange(next: string) {
+    setSystem(next);
+    setModule("");
+    setComponentName("");
+  }
+
+  function onModuleChange(next: string) {
+    setModule(next);
+    setComponentName("");
   }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <header>
-        <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600 }}>Search & Query</h1>
+        <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600 }}>Search</h1>
         <div style={{ color: "var(--muted)", marginTop: 6, fontSize: 14 }}>
-          Keyword search across firm-level fields. Advanced filters use value-chain, ownership,
-          technology intensity, location, TRL.
+          Search companies by profile fields and satellite component taxonomy.
         </div>
       </header>
 
@@ -91,17 +98,17 @@ export default function SearchPage() {
         <Grid cols={2} gap={14}>
           <Field label="Keyword">
             <Input
-              placeholder="Search firm name, registration, location, parent…"
+              placeholder="Search company, location, system, module, component..."
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
             />
           </Field>
           <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
             <Button variant="secondary" onClick={() => setAdvanced((v) => !v)}>
-              {advanced ? "Hide advanced filters" : "Show advanced filters"}
+              {advanced ? "Hide filters" : "Show filters"}
             </Button>
             <Button variant="ghost" onClick={reset}>
-              Reset
+              Reset filters
             </Button>
           </div>
         </Grid>
@@ -109,53 +116,43 @@ export default function SearchPage() {
         {advanced && (
           <div style={{ marginTop: 14 }}>
             <Grid cols={3} gap={14}>
-              <Field label="Value-chain stage">
-                <Select value={stage} onChange={(e) => setStage(e.target.value)}>
-                  <option value="">All stages</option>
-                  {VALUE_CHAIN_STAGES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
+              <Field label="System">
+                <Select value={system} onChange={(e) => onSystemChange(e.target.value)}>
+                  <option value="">All systems</option>
+                  {COMPONENT_SYSTEMS.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Module">
+                <Select value={module} onChange={(e) => onModuleChange(e.target.value)} disabled={!system}>
+                  <option value="">All modules</option>
+                  {modules.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Component">
+                <Select value={componentName} onChange={(e) => setComponentName(e.target.value)} disabled={!module}>
+                  <option value="">All components</option>
+                  {componentOptions.map((option) => (
+                    <option key={option} value={option}>{option}</option>
                   ))}
                 </Select>
               </Field>
               <Field label="Ownership type">
                 <Select value={ownership} onChange={(e) => setOwnership(e.target.value)}>
                   <option value="">All ownership</option>
-                  {OWNERSHIP_TYPES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-              <Field label="Technology intensity">
-                <Select value={techIntensity} onChange={(e) => setTechIntensity(e.target.value)}>
-                  <option value="">Any intensity</option>
-                  {TECH_INTENSITIES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
+                  {OWNERSHIP_TYPES.map((option) => (
+                    <option key={option} value={option}>{option}</option>
                   ))}
                 </Select>
               </Field>
               <Field label="Province">
                 <Select value={province} onChange={(e) => setProvince(e.target.value)}>
                   <option value="">All provinces</option>
-                  {provinces.map((p) => (
-                    <option key={p} value={p}>
-                      {p}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-              <Field label="Min TRL">
-                <Select value={minTRL} onChange={(e) => setMinTRL(e.target.value)}>
-                  <option value="">Any</option>
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
-                    <option key={n} value={n}>
-                      TRL ≥ {n}
-                    </option>
+                  {provinces.map((option) => (
+                    <option key={option} value={option}>{option}</option>
                   ))}
                 </Select>
               </Field>
@@ -165,45 +162,41 @@ export default function SearchPage() {
       </Card>
 
       <Card>
-        <SectionTitle hint={`${results.length} matching firm(s).`}>Results</SectionTitle>
+        <SectionTitle hint={`${results.length} matching compan${results.length === 1 ? "y" : "ies"}.`}>Results</SectionTitle>
         <Table
           rows={results}
-          empty="No firms match the filters."
+          empty="No companies match the filters."
           columns={[
             {
               key: "name",
-              header: "Firm",
-              render: (f) => (
-                <Link href={`/firms/${f.firm_id}`} style={{ color: "var(--primary)", fontWeight: 500 }}>
-                  {f.firm_name}
+              header: "Company",
+              render: (company) => (
+                <Link href={`/firms/${company.firm_id}`} style={{ color: "var(--primary)", fontWeight: 500 }}>
+                  {company.firm_name}
                 </Link>
               )
             },
-            { key: "id", header: "ID", render: (f) => <code>{f.firm_id}</code> },
-            { key: "own", header: "Ownership", render: (f) => <Badge>{f.ownership_type}</Badge> },
-            { key: "loc", header: "Location", render: (f) => `${f.province}` },
+            { key: "id", header: "ID", render: (company) => <code>{company.firm_id}</code> },
+            { key: "own", header: "Ownership", render: (company) => <Badge>{company.ownership_type}</Badge> },
+            { key: "loc", header: "Location", render: (company) => company.province },
             {
-              key: "stage",
-              header: "Stages",
-              render: (f) => {
-                const ss = Array.from(
-                  new Set(db.products.filter((p) => p.firm_id === f.firm_id).map((p) => p.value_chain_stage))
-                );
-                return (
+              key: "components",
+              header: "Components",
+              render: (company) => {
+                const components = db.products.filter((component) => component.firm_id === company.firm_id);
+                return components.length === 0 ? "-" : (
                   <span style={{ display: "inline-flex", gap: 4, flexWrap: "wrap" }}>
-                    {ss.map((s) => (
-                      <StageBadge key={s} stage={s} />
-                    ))}
+                    <Badge tone="accent">{components.length} component{components.length === 1 ? "" : "s"}</Badge>
                   </span>
                 );
               }
             },
             {
-              key: "trl",
-              header: "TRL",
-              render: (f) => {
-                const t = db.tech.find((x) => x.firm_id === f.firm_id);
-                return t ? <Badge tone="accent">TRL {t.trl_level}</Badge> : "—";
+              key: "systems",
+              header: "Systems",
+              render: (company) => {
+                const systems = Array.from(new Set(db.products.filter((component) => component.firm_id === company.firm_id).map((component) => component.system)));
+                return systems.length === 0 ? "-" : systems.map((value) => <Badge key={value}>{value}</Badge>);
               }
             }
           ]}

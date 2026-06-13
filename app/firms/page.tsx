@@ -1,16 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useDatabase } from "@/lib/store";
 import {
   Card,
-  SectionTitle,
   Input,
   Button,
   Table,
-  Badge,
-  StageBadge
+  Badge
 } from "@/components/ui";
 
 export default function FirmsPage() {
@@ -19,60 +17,60 @@ export default function FirmsPage() {
 
   const rows = useMemo(() => {
     const kw = q.trim().toLowerCase();
-    return db.firms.filter((f) =>
-      kw ? `${f.firm_name} ${f.firm_id} ${f.province}`.toLowerCase().includes(kw) : true
+    return db.firms.filter((company) =>
+      kw ? `${company.firm_name} ${company.firm_id} ${company.province}`.toLowerCase().includes(kw) : true
     );
   }, [db.firms, q]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <header className="page-header-actions" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600 }}>Firms</h1>
+          <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600 }}>Companies</h1>
           <div style={{ color: "var(--muted)", marginTop: 6, fontSize: 14 }}>
-            All organizations registered in the satellite industry database.
+            Companies registered in the satellite industry database.
           </div>
         </div>
-        <Link href="/firms/new">
-          <Button>+ New firm</Button>
+        <Link href="/firms/new" className="page-header-action">
+          <Button>Add company</Button>
         </Link>
       </header>
 
       <Card>
         <div style={{ marginBottom: 14, maxWidth: 320 }}>
-          <Input placeholder="Filter firms…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <Input placeholder="Filter companies..." value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
         <Table
           rows={rows}
-          empty="No firms found."
+          empty="No companies found."
           columns={[
             {
               key: "name",
-              header: "Firm",
-              render: (f) => (
-                <Link href={`/firms/${f.firm_id}`} style={{ color: "var(--primary)", fontWeight: 500 }}>
-                  {f.firm_name}
+              header: "Company",
+              render: (company) => (
+                <Link href={`/firms/${company.firm_id}`} style={{ color: "var(--primary)", fontWeight: 500 }}>
+                  {company.firm_name}
                 </Link>
               )
             },
-            { key: "id", header: "ID", render: (f) => <code>{f.firm_id}</code> },
-            { key: "year", header: "Founded", render: (f) => f.year_established },
-            { key: "own", header: "Ownership", render: (f) => <Badge>{f.ownership_type}</Badge> },
-            { key: "prov", header: "Province", render: (f) => f.province },
+            { key: "id", header: "ID", render: (company) => <code>{company.firm_id}</code> },
+            { key: "year", header: "Founded", render: (company) => company.year_established },
+            { key: "own", header: "Ownership", render: (company) => <Badge>{company.ownership_type}</Badge> },
+            { key: "prov", header: "Province", render: (company) => company.province },
             {
-              key: "stages",
-              header: "Value chain",
-              render: (f) => {
-                const ss = Array.from(
+              key: "systems",
+              header: "Systems",
+              render: (company) => {
+                const systems = Array.from(
                   new Set(
                     db.products
-                      .filter((p) => p.firm_id === f.firm_id)
-                      .map((p) => p.value_chain_stage)
+                      .filter((component) => component.firm_id === company.firm_id)
+                      .map((component) => component.system)
                   )
                 );
                 return (
                   <span style={{ display: "inline-flex", gap: 4, flexWrap: "wrap" }}>
-                    {ss.length === 0 ? "—" : ss.map((s) => <StageBadge key={s} stage={s} />)}
+                    {systems.length === 0 ? "-" : systems.map((system) => <Badge key={system} tone="accent">{system}</Badge>)}
                   </span>
                 );
               }
@@ -80,14 +78,14 @@ export default function FirmsPage() {
             {
               key: "actions",
               header: "",
-              render: (f) => (
+              render: (company) => (
                 <span style={{ display: "inline-flex", gap: 6 }}>
-                  <Link href={`/firms/${f.firm_id}`}>
+                  <Link href={`/firms/${company.firm_id}`}>
                     <Button variant="secondary" style={{ padding: "5px 10px", fontSize: 12 }}>
                       View
                     </Button>
                   </Link>
-                  <Link href={`/firms/${f.firm_id}/edit`}>
+                  <Link href={`/firms/${company.firm_id}/edit`}>
                     <Button variant="ghost" style={{ padding: "5px 10px", fontSize: 12 }}>
                       Edit
                     </Button>

@@ -216,3 +216,47 @@ a {
     transition: none !important;
   }
 }
+
+@media (max-width: 760px) {
+  .app-shell {
+    display: flex !important;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .app-shell__sidebar {
+    position: static !important;
+    height: auto !important;
+    border-right: 0 !important;
+    border-bottom: 1px solid var(--line);
+    padding: 14px 16px !important;
+  }
+
+  .app-shell__nav {
+    flex-direction: row !important;
+    gap: 6px !important;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .app-shell__nav a {
+    white-space: nowrap;
+  }
+
+  .app-shell__main {
+    width: 100%;
+    min-width: 0;
+    padding: 18px 16px !important;
+    overflow-x: hidden !important;
+  }
+
+  .page-header-actions {
+    align-items: flex-start !important;
+    flex-direction: column;
+  }
+
+  .page-header-action,
+  .page-header-action button {
+    width: 100%;
+  }
+}

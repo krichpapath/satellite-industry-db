@@ -48,7 +48,7 @@ export default function SourcesPage() {
   }
 
   function onDelete(s: DataSource) {
-    if (!confirm(`Delete source ${s.name}? Firms referencing it will be unlinked.`)) return;
+    if (!confirm(`Delete source ${s.name}? Companies referencing it will be unlinked.`)) return;
     commit(
       { action: "delete", table: "sources", id: s.source_id, summary: `Deleted source ${s.name}` },
       (d) => {
@@ -65,14 +65,14 @@ export default function SourcesPage() {
           <div>
             <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600 }}>Data Sources</h1>
             <div style={{ color: "var(--muted)", marginTop: 6, fontSize: 14 }}>
-              Provenance registry — paper §design principle 1 (Data Integration) + §6.5 Quality.
+              Provenance registry for company and component datasets.
             </div>
           </div>
           <Button onClick={() => setCreating(true)}>+ New source</Button>
         </header>
 
         <Card>
-          <SectionTitle hint="Each firm record references one source for traceability.">Registered sources</SectionTitle>
+          <SectionTitle hint="Each company record references one source for traceability.">Registered sources</SectionTitle>
           <Table
             rows={db.sources}
             empty="No sources registered."
@@ -87,7 +87,7 @@ export default function SourcesPage() {
                 header: "Used by",
                 render: (r) => {
                   const n = db.firms.filter((f) => f.source_id === r.source_id).length;
-                  return <Badge tone={n > 0 ? "success" : "neutral"}>{n} firms</Badge>;
+                  return <Badge tone={n > 0 ? "success" : "neutral"}>{n} companies</Badge>;
                 }
               },
               {

@@ -1,5 +1,6 @@
 import type { Database, Firm, OwnershipType } from "./schema";
 import { DEFAULT_VOCAB } from "./schema";
+import { COMPONENT_SYSTEMS, findComponentPath, modulesForSystem } from "./component-taxonomy";
 
 const rawApiBase = process.env.NEXT_PUBLIC_API_BASE_URL?.trim() ?? "";
 export const API_BASE_URL = rawApiBase.replace(/\/+$/, "");
@@ -144,22 +145,17 @@ function normalizeFinance(row: RawRecord): Database["size_finance"][number] {
 }
 
 function normalizeProduct(row: RawRecord): Database["products"][number] {
+  const componentName = toString(row.component_name ?? row.product_name);
+  const path = findComponentPath(componentName);
+  const fallbackSystem = COMPONENT_SYSTEMS[0] ?? "";
+  const fallbackModule = fallbackSystem ? modulesForSystem(fallbackSystem)[0] ?? "" : "";
+
   return {
-    ...row,
     product_id: toString(row.product_id),
     firm_id: toString(row.firm_id),
-    product_name: toString(row.product_name),
-    value_chain_stage: toString(row.value_chain_stage, "Upstream"),
-    technology_intensity: toString(row.technology_intensity, "Medium"),
-    main_market: toString(row.main_market),
-    certification: toString(row.certification) || undefined,
-    sia_category: toString(row.sia_category) || undefined,
-    itu_service_class: toString(row.itu_service_class) || undefined,
-    orbit_type: toString(row.orbit_type) || undefined,
-    frequency_band: toString(row.frequency_band) || undefined,
-    naics_code: toString(row.naics_code) || undefined,
-    hs_code: toString(row.hs_code) || undefined,
-    product_trl: row.product_trl === null || row.product_trl === undefined ? undefined : toNumber(row.product_trl),
+    component_name: componentName || "Unspecified component",
+    system: toString(row.system ?? path?.system, fallbackSystem),
+    module: toString(row.module ?? path?.module, fallbackModule),
     description: toString(row.description) || undefined
   } as Database["products"][number];
 }
@@ -304,23 +300,8 @@ export async function getDataset(): Promise<Database> {
   return normalizeDatabase(data);
 }
 
-function validRangeNumber(value: unknown, min: number, max: number): number | undefined {
-  if (value === "" || value === null || value === undefined) return undefined;
-  const next = Number(value);
-  return Number.isFinite(next) && next >= min && next <= max ? next : undefined;
-}
-
 function sanitizeDatasetForApi(db: Database): Database {
-  return {
-    ...db,
-    products: db.products.map((product) => {
-      const next = { ...product };
-      const trl = validRangeNumber(product.product_trl, 1, 9);
-      if (trl === undefined) delete next.product_trl;
-      else next.product_trl = trl;
-      return next;
-    })
-  };
+  return db;
 }
 
 export async function saveDataset(db: Database): Promise<{ ok: boolean; counts?: Record<string, number> }> {

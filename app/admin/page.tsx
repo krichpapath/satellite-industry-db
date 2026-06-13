@@ -33,17 +33,17 @@ type Tab = "json" | "csv" | "danger";
 const CSV_TARGETS: { key: keyof Database; label: string; idField: string; idPrefix: string; columns: string[] }[] = [
   {
     key: "firms",
-    label: "Firms",
+    label: "Companies",
     idField: "firm_id",
     idPrefix: "F",
-    columns: ["firm_name", "registration_no", "year_established", "ownership_type", "industry_code", "province", "industrial_zone", "website", "contact_email", "parent_company", "source_id"]
+    columns: ["firm_name", "year_established", "ownership_type", "parent_company", "province", "industrial_zone", "website", "contact_email"]
   },
   {
     key: "products",
-    label: "Products / Services",
+    label: "Components",
     idField: "product_id",
     idPrefix: "P",
-    columns: ["firm_id", "product_name", "value_chain_stage", "technology_intensity", "main_market", "certification"]
+    columns: ["firm_id", "component_name", "system", "module", "description"]
   },
   {
     key: "tech",
@@ -213,9 +213,9 @@ export default function AdminPage() {
   }
 
   const rowCounts: [string, number][] = [
-    ["Firms", db.firms.length],
+    ["Companies", db.firms.length],
     ["Size & Finance", db.size_finance.length],
-    ["Products", db.products.length],
+    ["Components", db.products.length],
     ["Tech", db.tech.length],
     ["Facilities", db.facilities.length],
     ["HR", db.hr.length],
@@ -235,7 +235,7 @@ export default function AdminPage() {
         <header>
           <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600 }}>Admin / Data Management</h1>
           <div style={{ color: "var(--muted)", marginTop: 6, fontSize: 14 }}>
-            Access-controlled data interface (paper §6.5). Backup, restore, bulk import, reset.
+            Access-controlled data interface for backup, restore, bulk import, and reset.
           </div>
         </header>
 
@@ -297,7 +297,7 @@ export default function AdminPage() {
 
         {tab === "csv" && (
           <Card>
-            <SectionTitle hint="ETL — paper §design principles 1+2. Pick a target table, paste CSV with header row, preview, commit.">
+            <SectionTitle hint="Pick a target table, paste CSV with a header row, preview, then commit.">
               CSV Bulk Import
             </SectionTitle>
             <Grid cols={2} gap={12} style={{ marginBottom: 12 }}>
@@ -320,7 +320,7 @@ export default function AdminPage() {
             <Textarea
               rows={10}
               value={csvText}
-              placeholder={`${csvTemplate}AcmeSat,0123,2024,Local,ISIC-3030,Bangkok,,,,...`}
+              placeholder={`${csvTemplate}AcmeSat,2024,Local,,Bangkok,,https://example.com,info@example.com`}
               onChange={(e) => setCsvText(e.target.value)}
             />
             <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>

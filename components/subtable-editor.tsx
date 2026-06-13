@@ -15,12 +15,18 @@ import {
   Grid
 } from "./ui";
 import type { Database } from "@/lib/schema";
+import {
+  COMPONENT_SYSTEMS,
+  componentsForModule,
+  modulesForSystem
+} from "@/lib/component-taxonomy";
 
 export type FieldDef =
   | { name: string; label: string; type: "text"; required?: boolean }
   | { name: string; label: string; type: "number"; min?: number; max?: number; required?: boolean; nullable?: boolean }
   | { name: string; label: string; type: "bool" }
-  | { name: string; label: string; type: "enum"; options: string[]; required?: boolean };
+  | { name: string; label: string; type: "enum"; options: string[]; required?: boolean }
+  | { name: "component_name"; label: string; type: "component"; required?: boolean };
 
 type Row = Record<string, unknown>;
 
@@ -54,6 +60,14 @@ export function SubTableEditor<T>({
     const o: Row = { firm_id: firmId };
     for (const f of fields) {
       if (f.name === "firm_id") continue;
+      if (f.type === "component") {
+        const system = COMPONENT_SYSTEMS[0] ?? "";
+        const module = modulesForSystem(system)[0] ?? "";
+        o.system = system;
+        o.module = module;
+        o.component_name = "";
+        continue;
+      }
       o[f.name] = f.type === "bool" ? false : f.type === "number" ? (f.nullable ? "" : 0) : "";
     }
     return o;
@@ -81,7 +95,11 @@ export function SubTableEditor<T>({
     for (const f of fields) {
       const v = form[f.name];
       if ("required" in f && f.required) {
-        if (isBlank(v)) {
+        if (f.type === "component") {
+          if (isBlank(form.system) || isBlank(form.module) || isBlank(form.component_name)) {
+            return "System, module, and component are required.";
+          }
+        } else if (isBlank(v)) {
           return `${f.label} is required.`;
         }
       }
@@ -155,7 +173,7 @@ export function SubTableEditor<T>({
         </div>
         <RequireRole min="Analyst" fallback={<Badge>Read-only</Badge>}>
           <Button variant="secondary" onClick={() => setCreating(true)} style={{ padding: "4px 10px", fontSize: 12 }}>
-            + Add
+            Add {title}
           </Button>
         </RequireRole>
       </div>
@@ -183,7 +201,7 @@ export function SubTableEditor<T>({
                     onClick={() => onDelete(row)}
                     style={{ padding: "3px 8px", fontSize: 12, color: "var(--danger)" }}
                   >
-                    Del
+                    Delete
                   </Button>
                 </span>
               </RequireRole>
@@ -247,12 +265,15 @@ function RowModal({
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={() => onSave(form)}>Save</Button>
+          <Button onClick={() => onSave(form)}>Save record</Button>
         </>
       }
     >
       <Grid cols={2} gap={12}>
         {fields.map((f) => (
+          f.type === "component" ? (
+            <ComponentPathFields key={f.name} form={form} update={update} required={f.required} />
+          ) : (
           <Field key={f.name} label={f.label} required={"required" in f ? f.required : false}>
             {f.type === "text" && (
               <Input value={String(form[f.name] ?? "")} onChange={(e) => update(f.name, e.target.value)} />
@@ -283,9 +304,76 @@ function RowModal({
               </Select>
             )}
           </Field>
+          )
         ))}
       </Grid>
     </Modal>
+  );
+}
+
+function ComponentPathFields({
+  form,
+  update,
+  required
+}: {
+  form: Row;
+  update: (name: string, value: unknown) => void;
+  required?: boolean;
+}) {
+  const system = String(form.system ?? "");
+  const module = String(form.module ?? "");
+  const modules = modulesForSystem(system);
+  const components = componentsForModule(system, module);
+
+  function updateSystem(nextSystem: string) {
+    const nextModule = modulesForSystem(nextSystem)[0] ?? "";
+    update("system", nextSystem);
+    update("module", nextModule);
+    update("component_name", "");
+  }
+
+  function updateModule(nextModule: string) {
+    update("module", nextModule);
+    update("component_name", "");
+  }
+
+  return (
+    <>
+      <Field label="System" required={required}>
+        <Select value={system} onChange={(e) => updateSystem(e.target.value)}>
+          <option value="">Select system</option>
+          {COMPONENT_SYSTEMS.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </Select>
+      </Field>
+      <Field label="Module" required={required}>
+        <Select value={module} onChange={(e) => updateModule(e.target.value)} disabled={!system}>
+          <option value="">Select module</option>
+          {modules.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </Select>
+      </Field>
+      <Field label="Component" required={required}>
+        <Select
+          value={String(form.component_name ?? "")}
+          onChange={(e) => update("component_name", e.target.value)}
+          disabled={!module}
+        >
+          <option value="">Select component</option>
+          {components.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </Select>
+      </Field>
+    </>
   );
 }
 

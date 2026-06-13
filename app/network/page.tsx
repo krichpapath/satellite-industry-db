@@ -32,13 +32,13 @@ export default function NetworkPage() {
 
   const visibleLinks = db.linkages.filter((l) => linkFilter === "All" || l.linkage_type === linkFilter);
 
-  function stageColor(firmId: string) {
-    const stages = new Set(
-      db.products.filter((p) => p.firm_id === firmId).map((p) => p.value_chain_stage)
+  function systemColor(firmId: string) {
+    const systems = new Set(
+      db.products.filter((component) => component.firm_id === firmId).map((component) => component.system)
     );
-    if (stages.has("Upstream")) return "var(--accent)";
-    if (stages.has("Midstream")) return "var(--warn)";
-    if (stages.has("Downstream")) return "var(--success)";
+    if ([...systems].some((system) => system.includes("Payload"))) return "var(--accent)";
+    if ([...systems].some((system) => system.includes("Propulsion"))) return "var(--warn)";
+    if ([...systems].some((system) => system.includes("TT&C"))) return "var(--success)";
     return "var(--primary)";
   }
 
@@ -55,7 +55,7 @@ export default function NetworkPage() {
       <header>
         <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600 }}>Ecosystem Network</h1>
         <div style={{ color: "var(--muted)", marginTop: 6, fontSize: 14 }}>
-          Supply-chain and partnership network — paper §3.5, Social Network Analysis view.
+          Company relationship network across suppliers, buyers, and partners.
         </div>
       </header>
 
@@ -124,7 +124,7 @@ export default function NetworkPage() {
                 >
                   <circle
                     r={isSel ? 18 : 13}
-                    fill={stageColor(f.firm_id)}
+                    fill={systemColor(f.firm_id)}
                     stroke="#fff"
                     strokeWidth={2}
                     opacity={selected && !isSel ? 0.5 : 1}
@@ -154,7 +154,7 @@ export default function NetworkPage() {
           <SectionTitle hint="Click a node to inspect its ecosystem.">Inspector</SectionTitle>
           {!selectedFirm ? (
             <div style={{ color: "var(--muted)", fontSize: 13 }}>
-              Click a firm node to see incoming and outgoing relationships.
+              Click a company node to see incoming and outgoing relationships.
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

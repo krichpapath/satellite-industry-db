@@ -5,6 +5,7 @@ import type { Database, Role, AuditEntry } from "./schema";
 import { DEFAULT_VOCAB } from "./schema";
 import { SEED } from "./seed";
 import { apiConfigured, getDataset, saveDataset } from "./api";
+import { COMPONENT_SYSTEMS, findComponentPath, modulesForSystem } from "./component-taxonomy";
 
 const KEY = "satdb.v3";
 const ROLE_KEY = "satdb.role";
@@ -16,6 +17,30 @@ export type ApiSyncResult =
   | { ok: true; count: number; tables: Record<string, number> }
   | { ok: false; reason: string };
 
+function migrateProducts(products: unknown, base: Database): Database["products"] {
+  const fallbackSystem = COMPONENT_SYSTEMS[0] ?? "";
+  const fallbackModule = fallbackSystem ? modulesForSystem(fallbackSystem)[0] ?? "" : "";
+  const rows = Array.isArray(products) ? products : base.products;
+
+  return rows
+    .filter((row): row is Record<string, unknown> => typeof row === "object" && row !== null)
+    .map((row, index) => {
+      const componentName = String(row.component_name ?? row.product_name ?? "").trim();
+      const path = findComponentPath(componentName);
+      const system = String(row.system ?? path?.system ?? fallbackSystem).trim();
+      const module = String(row.module ?? path?.module ?? fallbackModule).trim();
+
+      return {
+        product_id: String(row.product_id ?? `P${String(index + 1).padStart(3, "0")}`),
+        firm_id: String(row.firm_id ?? ""),
+        component_name: componentName || "Unspecified component",
+        system,
+        module,
+        description: row.description ? String(row.description) : undefined
+      };
+    });
+}
+
 function migrate(db: unknown): Database {
   const base = structuredClone(SEED);
   if (!db || typeof db !== "object") return base;
@@ -23,7 +48,7 @@ function migrate(db: unknown): Database {
   return {
     firms: d.firms ?? base.firms,
     size_finance: d.size_finance ?? base.size_finance,
-    products: d.products ?? base.products,
+    products: migrateProducts(d.products, base),
     tech: d.tech ?? base.tech,
     facilities: d.facilities ?? base.facilities,
     hr: d.hr ?? base.hr,

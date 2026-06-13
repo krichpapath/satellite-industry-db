@@ -130,16 +130,16 @@ export const SEED: Database = {
     { firm_id: "F010", employees_total: 110, engineers: 65, annual_revenue_mthb: 240, export_percentage: 55, production_capacity: "IoT terminals 50k/yr", capital_investment_mthb: 410 }
   ],
   products: [
-    { product_id: "P001", firm_id: "F001", product_name: "Small Earth-Observation Satellite Bus", value_chain_stage: "Upstream", technology_intensity: "High", main_market: "Domestic + ASEAN", certification: "AS9100" },
-    { product_id: "P002", firm_id: "F002", product_name: "Satellite RF Front-End Modules", value_chain_stage: "Upstream", technology_intensity: "High", main_market: "Export (EU/JP)", certification: "ISO 9001, AS9100" },
-    { product_id: "P003", firm_id: "F003", product_name: "Suborbital Launch Vehicle Service", value_chain_stage: "Midstream", technology_intensity: "High", main_market: "Domestic", certification: "ISO 9001" },
-    { product_id: "P004", firm_id: "F004", product_name: "Ground Station as a Service", value_chain_stage: "Midstream", technology_intensity: "Medium", main_market: "Domestic + ASEAN", certification: "ISO 27001" },
-    { product_id: "P005", firm_id: "F005", product_name: "GEO Satellite Capacity Lease", value_chain_stage: "Downstream", technology_intensity: "Medium", main_market: "Domestic + APAC", certification: "ITU compliant" },
-    { product_id: "P006", firm_id: "F006", product_name: "EO Analytics Cloud Platform", value_chain_stage: "Downstream", technology_intensity: "High", main_market: "Global", certification: "ISO 27001" },
-    { product_id: "P007", firm_id: "F007", product_name: "Precision GNSS Receiver", value_chain_stage: "Downstream", technology_intensity: "Medium", main_market: "Domestic + ASEAN", certification: "RoHS" },
-    { product_id: "P008", firm_id: "F008", product_name: "Agricultural Remote Sensing Service", value_chain_stage: "Downstream", technology_intensity: "Medium", main_market: "Domestic", certification: "GAP" },
-    { product_id: "P009", firm_id: "F009", product_name: "Bipropellant Thruster Prototype", value_chain_stage: "Upstream", technology_intensity: "High", main_market: "Research", certification: "—" },
-    { product_id: "P010", firm_id: "F010", product_name: "LEO IoT Satellite Terminal", value_chain_stage: "Downstream", technology_intensity: "High", main_market: "Export (EU)", certification: "CE, FCC" }
+    { product_id: "P001", firm_id: "F001", component_name: "• กล้องถ่ายภาพความละเอียดสูง (Optical Telescope)", system: "1. Payload System(ระบบภารกิจ)", module: "Optical Sensor Assembly(ชุดเซนเซอร์และเลนส์)", description: "High-resolution optical payload component for Earth observation." },
+    { product_id: "P002", firm_id: "F002", component_name: "• วงจรรวม RF (RFIC) ทนรังสี", system: "1. Payload System(ระบบภารกิจ)", module: "Optical Sensor Assembly(ชุดเซนเซอร์และเลนส์)", description: "Radiation-tolerant RFIC component used in satellite payload electronics." },
+    { product_id: "P003", firm_id: "F003", component_name: "• หัวฉีด (Thruster Nozzle) โลหะทนความร้อนสูง", system: "7. Propulsion System(ระบบขับเคลื่อน)", module: "Thruster Assembly(ชุดหัวฉีดขับดัน)", description: "High-temperature thruster nozzle for propulsion assemblies." },
+    { product_id: "P004", firm_id: "F004", component_name: "• เครื่องรับส่งสัญญาณวิทยุ (S-band หรือ UHF/VHF)", system: "5. TT&C(ระบบสื่อสารสั่งการ)", module: "Transceiver(ส่วนรับส่งวิทยุสั่งการ)", description: "Radio transceiver component for telemetry, tracking, and command." },
+    { product_id: "P005", firm_id: "F005", component_name: "• เครื่องส่งสัญญาณย่าน X-band (X-band Transmitter), Ka-band, Ku-band", system: "1. Payload System(ระบบภารกิจ)", module: "High-Speed Downlink(ส่วนส่งข้อมูลความเร็วสูง)", description: "High-speed downlink transmitter component for mission data return." },
+    { product_id: "P006", firm_id: "F006", component_name: "• ชิปประมวลผล FPGA/GPU เฉพาะทาง", system: "1. Payload System(ระบบภารกิจ)", module: "Payload Data Processing(ส่วนประมวลผลข้อมูลภารกิจ)", description: "Specialized processing chip for payload data handling." },
+    { product_id: "P007", firm_id: "F007", component_name: "• เซนเซอร์วัดสนามแม่เหล็ก (3-Axis Magnetometer)", system: "3. ADCS(ระบบควบคุมทิศทาง)", module: "Attitude Sensors(ส่วนเซนเซอร์วัดทิศทาง)", description: "Three-axis magnetometer for attitude sensing." },
+    { product_id: "P008", firm_id: "F008", component_name: "• เซนเซอร์รับภาพ CMOS/CCD", system: "1. Payload System(ระบบภารกิจ)", module: "Optical Sensor Assembly(ชุดเซนเซอร์และเลนส์)", description: "Image sensor component for optical payloads." },
+    { product_id: "P009", firm_id: "F009", component_name: "• วาล์วควบคุมแรงดัน (Pressure Control Valves)", system: "7. Propulsion System(ระบบขับเคลื่อน)", module: "Propellant Management(ส่วนจัดการสารขับดัน)", description: "Pressure control valve for propellant management." },
+    { product_id: "P010", firm_id: "F010", component_name: "• สายอากาศรอบทิศทาง (Omnidirectional Antennas)", system: "5. TT&C(ระบบสื่อสารสั่งการ)", module: "Antenna System(ส่วนสายอากาศสั่งการ)", description: "Omnidirectional antenna component for command links." }
   ],
   tech: [
     { tech_id: "T001", firm_id: "F001", core_technology: "Satellite bus integration", trl_level: 7, rd_expenditure_mthb: 75, rd_personnel: 28, patents_count: 6, digitalization_level: 4 },
@@ -251,22 +251,6 @@ export function patchFirmsWithProvenance() {
     if (i === 9) t.patent_field = "NB-IoT NTN, low-power modem";
   });
 
-  const PRODUCT_PATCH: Record<string, Partial<import("./schema").ProductService>> = {
-    P001: { sia_category: "Satellite Manufacturing", itu_service_class: "N/A", orbit_type: "LEO", frequency_band: "N/A", naics_code: "336414", hs_code: "8802.60", product_trl: 7, description: "Earth-observation small satellite platform (≤150 kg). Bus integration with payload accommodation." },
-    P002: { sia_category: "Satellite Manufacturing", itu_service_class: "N/A", orbit_type: "N/A", frequency_band: "Ku", naics_code: "334220", hs_code: "8525.60", product_trl: 8, description: "RF / microwave front-end module for satcom payload, Ku- and Ka-band variants." },
-    P003: { sia_category: "Launch Services", itu_service_class: "N/A", orbit_type: "Sub-orbital", frequency_band: "N/A", naics_code: "336414", hs_code: "8802.60", product_trl: 5, description: "Suborbital launch vehicle service for technology demo / microgravity payloads." },
-    P004: { sia_category: "Ground Equipment", itu_service_class: "FSS", orbit_type: "N/A", frequency_band: "Ku", naics_code: "334220", hs_code: "8525.60", product_trl: 8, description: "Ground station as a service: TT&C and data-downlink hosting for LEO/MEO/GEO operators." },
-    P005: { sia_category: "Satellite Services", itu_service_class: "FSS", orbit_type: "GEO", frequency_band: "Ku", naics_code: "517410", hs_code: "—", product_trl: 9, description: "GEO satellite capacity lease (Ku/Ka transponders) for telecom and broadcast operators." },
-    P006: { sia_category: "Satellite Services", itu_service_class: "EESS", orbit_type: "LEO", frequency_band: "N/A", naics_code: "541715", hs_code: "—", product_trl: 8, description: "Cloud-hosted EO analytics platform — multi-sensor fusion, change-detection, AI/ML pipeline." },
-    P007: { sia_category: "Ground Equipment", itu_service_class: "RDSS", orbit_type: "MEO", frequency_band: "L", naics_code: "334220", hs_code: "8526.91", product_trl: 8, description: "Precision multi-constellation GNSS receiver (GPS / Galileo / BeiDou / GLONASS) with RTK." },
-    P008: { sia_category: "Satellite Services", itu_service_class: "EESS", orbit_type: "LEO", frequency_band: "N/A", naics_code: "541715", hs_code: "—", product_trl: 7, description: "Multispectral remote-sensing service for agriculture: yield prediction, irrigation, pest mapping." },
-    P009: { sia_category: "Satellite Manufacturing", itu_service_class: "N/A", orbit_type: "N/A", frequency_band: "N/A", naics_code: "336414", hs_code: "8803.90", product_trl: 4, description: "Bipropellant thruster prototype for orbit insertion and station-keeping." },
-    P010: { sia_category: "Ground Equipment", itu_service_class: "MSS", orbit_type: "LEO", frequency_band: "L", naics_code: "334220", hs_code: "8517.62", product_trl: 7, description: "LEO satellite IoT terminal (NB-IoT NTN) for asset tracking and remote sensing." }
-  };
-  SEED.products.forEach((p) => {
-    const patch = PRODUCT_PATCH[p.product_id];
-    if (patch) Object.assign(p, patch);
-  });
 }
 
 patchFirmsWithProvenance();

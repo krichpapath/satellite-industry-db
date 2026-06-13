@@ -17,26 +17,24 @@ import type { Vocab } from "@/lib/schema";
 
 const LABELS: Record<keyof Vocab, string> = {
   ownership_types: "Ownership types",
-  value_chain_stages: "Value-chain stages (OECD)",
-  tech_intensities: "Tech intensities (OECD)",
   linkage_types: "Linkage types",
   partner_types: "Partner types",
   collab_types: "Collaboration types",
   provinces: "Provinces",
-  industry_codes: "Industry codes (ISIC / NAICS firm-level)",
+  industry_codes: "Industry codes",
   core_technologies: "Core technologies",
-  sia_categories: "SIA categories",
-  itu_services: "ITU radio services",
-  orbit_types: "Orbit class",
-  frequency_bands: "ITU-R frequency bands",
-  naics_codes: "NAICS 2022 (product-level)",
-  hs_codes: "HS 2022 (product-level)"
+  component_systems: "Component systems",
+  component_modules: "Component modules",
+  component_names: "Components"
 };
 
 const HINTS: Partial<Record<keyof Vocab, string>> = {
   core_technologies: "Used in the Gap Analysis heatmap rows.",
-  industry_codes: "ISIC / NAICS codes used in firm forms.",
-  provinces: "Geographic options. Adding new ones also requires updating the SVG map for them to appear."
+  industry_codes: "Optional company classification values.",
+  provinces: "Geographic options. Adding new ones also requires updating the SVG map for them to appear.",
+  component_systems: "Expert workbook System list.",
+  component_modules: "Expert workbook Module list.",
+  component_names: "Expert workbook Component list."
 };
 
 export default function TaxonomyPage() {
