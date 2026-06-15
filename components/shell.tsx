@@ -18,7 +18,9 @@ import {
   Database as DbIcon,
   ScrollText,
   BookOpenText,
-  ChevronRight
+  ChevronRight,
+  Menu,
+  X
 } from "lucide-react";
 
 type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; min: Role };
@@ -52,16 +54,88 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const role = useRole();
   const [hovered, setHovered] = useState<string | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const visibleNav = NAV.filter((item) => roleAtLeast(role, item.min));
+  const bottomNav = visibleNav.filter((item) => ["/", "/search", "/firms"].includes(item.href));
 
   useEffect(() => {
     ensureSeeded();
     void syncDatasetFromApi();
   }, []);
 
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  function isActive(href: string) {
+    return href === "/" ? pathname === "/" : pathname?.startsWith(href);
+  }
+
+  function rolePicker(id: string, compact = false) {
+    return (
+      <select
+        id={id}
+        aria-label="Active role"
+        value={role}
+        onChange={(e) => setRole(e.target.value as Role)}
+        style={{
+          width: compact ? 118 : "100%",
+          minHeight: 44,
+          padding: "7px 10px",
+          border: `1px solid ${roleColor[role]}`,
+          borderRadius: 8,
+          background: "var(--surface)",
+          color: "var(--ink)",
+          fontSize: compact ? 13 : 14,
+          fontWeight: 500,
+          cursor: "pointer"
+        }}
+      >
+        {ROLES.map((r) => (
+          <option key={r} value={r}>
+            {r}
+          </option>
+        ))}
+      </select>
+    );
+  }
+
   return (
-    <div className="app-shell" style={{ display: "grid", gridTemplateColumns: "240px 1fr", minHeight: "100vh" }}>
+    <div
+      className="app-shell"
+      data-mobile-open={mobileOpen ? "true" : "false"}
+      style={{ display: "grid", gridTemplateColumns: "240px 1fr", minHeight: "100vh" }}
+    >
+      <header className="app-shell__mobile-top">
+        <button
+          type="button"
+          className="app-shell__icon-button"
+          onClick={() => setMobileOpen(true)}
+          aria-label="Open navigation"
+          aria-controls="primary-navigation"
+          aria-expanded={mobileOpen}
+        >
+          <Menu size={20} />
+        </button>
+        <Link href="/" className="app-shell__mobile-brand" aria-label="SatDB dashboard">
+          <span className="app-shell__brand-mark"><Satellite size={18} /></span>
+          <span>SatDB</span>
+        </Link>
+        {rolePicker("mobile-role", true)}
+      </header>
+
+      <button
+        type="button"
+        className="app-shell__overlay"
+        aria-label="Close navigation"
+        onClick={() => setMobileOpen(false)}
+      />
+
       <aside
+        id="primary-navigation"
         className="app-shell__sidebar"
+        aria-label="Primary navigation"
         style={{
           borderRight: "1px solid var(--line)",
           padding: "22px 16px",
@@ -72,10 +146,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           overflowY: "auto"
         }}
       >
+        <div className="app-shell__sidebar-tools">
+          <button
+            type="button"
+            className="app-shell__icon-button app-shell__mobile-close"
+            onClick={() => setMobileOpen(false)}
+            aria-label="Close navigation"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
         <motion.div
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
+          className="app-shell__brand"
           style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}
         >
           <motion.div
@@ -93,13 +179,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           >
             <Satellite size={20} />
           </motion.div>
-          <div>
+          <div className="app-shell__label">
             <div style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.1 }}>SatDB</div>
             <div style={{ fontSize: 11, color: "var(--muted)" }}>Thai Satellite Industry</div>
           </div>
         </motion.div>
 
-        <div style={{ marginBottom: 16 }}>
+        <div className="app-shell__role" style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 10, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
             <motion.span
               animate={{ scale: [1, 1.25, 1] }}
@@ -114,27 +200,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             />
             Active role
           </div>
-          <select
-            value={role}
-            onChange={(e) => setRole(e.target.value as Role)}
-            style={{
-              width: "100%",
-              padding: "7px 10px",
-              border: `1px solid ${roleColor[role]}`,
-              borderRadius: 8,
-              background: "var(--surface)",
-              color: "var(--ink)",
-              fontSize: 13,
-              fontWeight: 500,
-              cursor: "pointer"
-            }}
-          >
-            {ROLES.map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
-            ))}
-          </select>
+          {rolePicker("sidebar-role")}
           <AnimatePresence mode="wait">
             <motion.div
               key={role}
@@ -159,10 +225,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           }}
           style={{ display: "flex", flexDirection: "column", gap: 2 }}
         >
-          {NAV.map((item) => {
-            if (!roleAtLeast(role, item.min)) return null;
-
-            const active = item.href === "/" ? pathname === "/" : pathname?.startsWith(item.href);
+          {visibleNav.map((item) => {
+            const active = isActive(item.href);
             const Icon = item.icon;
             const isHover = hovered === item.href;
 
@@ -230,7 +294,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   >
                     <Icon size={17} />
                   </motion.span>
-                  {item.label}
+                  <span className="app-shell__label">{item.label}</span>
                   <AnimatePresence>
                     {isHover && !active && (
                       <motion.span
@@ -252,6 +316,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <main className="app-shell__main" style={{ padding: "28px 32px", overflowX: "hidden" }}>{children}</main>
+
+      <nav className="app-shell__bottom-nav" aria-label="Primary mobile navigation">
+        {bottomNav.map((item) => {
+          const Icon = item.icon;
+          const active = isActive(item.href);
+          return (
+            <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined} data-active={active ? "true" : "false"}>
+              <Icon size={18} aria-hidden="true" />
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
+        <button
+          type="button"
+          onClick={() => setMobileOpen(true)}
+          aria-label="Open all navigation"
+          aria-controls="primary-navigation"
+          aria-expanded={mobileOpen}
+        >
+          <Menu size={18} aria-hidden="true" />
+          <span>Menu</span>
+        </button>
+      </nav>
     </div>
   );
 }

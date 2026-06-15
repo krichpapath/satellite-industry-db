@@ -98,6 +98,8 @@ export default function TaxonomyPage() {
                     {term}
                     <button
                       onClick={() => removeTerm(key, term)}
+                      className="taxonomy-term-remove"
+                      aria-label={`Remove ${term}`}
                       style={{
                         border: "none",
                         background: "transparent",
@@ -115,7 +117,7 @@ export default function TaxonomyPage() {
                 {db.vocab[key].length === 0 && <Badge>Empty</Badge>}
               </div>
               <Field label="Add term">
-                <div style={{ display: "flex", gap: 6 }}>
+                <div className="taxonomy-add-row" style={{ display: "flex", gap: 6 }}>
                   <Input
                     value={newValue[key] ?? ""}
                     onChange={(e) => setNewValue((p) => ({ ...p, [key]: e.target.value }))}

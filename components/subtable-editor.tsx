@@ -166,13 +166,13 @@ export function SubTableEditor<T>({
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+      <div className="subtable-editor__header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, gap: 12 }}>
         <div>
           <strong style={{ fontSize: 14 }}>{title}</strong>
           {hint && <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>{hint}</div>}
         </div>
         <RequireRole min="Analyst" fallback={<Badge>Read-only</Badge>}>
-          <Button variant="secondary" onClick={() => setCreating(true)} style={{ padding: "4px 10px", fontSize: 12 }}>
+          <Button className="subtable-editor__add" variant="secondary" onClick={() => setCreating(true)} style={{ padding: "4px 10px", fontSize: 12 }}>
             Add {title}
           </Button>
         </RequireRole>

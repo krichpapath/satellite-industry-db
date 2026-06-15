@@ -2,7 +2,7 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
-import { Download, FileSpreadsheet } from "lucide-react";
+import { Cpu, Download, FileSpreadsheet, House, Leaf, Network, Package, Users } from "lucide-react";
 import { useDatabase } from "@/lib/store";
 import {
   Card,
@@ -16,6 +16,8 @@ import {
   Tabs
 } from "@/components/ui";
 import { SubTableEditor } from "@/components/subtable-editor";
+import { ComponentRecordsPanel } from "@/components/component-records";
+import { richTextToPlainText } from "@/lib/rich-text";
 import type {
   Firm,
   ProductService,
@@ -27,7 +29,6 @@ import type {
   SustainabilityESG,
   FirmSizeFinance
 } from "@/lib/schema";
-import { COMPONENT_SYSTEMS } from "@/lib/component-taxonomy";
 
 type TabKey = "overview" | "products" | "tech" | "workforce" | "supply" | "esg";
 type ExportCell = string | number | boolean | null | undefined;
@@ -73,10 +74,11 @@ const PRODUCT_EXPORT_COLUMNS: ExportColumn<ProductService>[] = [
   { label: "Company ID", value: (firm) => firm.firm_id },
   { label: "Company Name", value: (firm) => firm.firm_name },
   { label: "Component ID", value: (_firm, product) => product.product_id },
-  { label: "Component", value: (_firm, product) => product.component_name },
+  { label: "Product Name", value: (_firm, product) => product.product_name },
   { label: "System", value: (_firm, product) => product.system },
   { label: "Module", value: (_firm, product) => product.module },
-  { label: "Description", value: (_firm, product) => product.description }
+  { label: "Component", value: (_firm, product) => product.component_name },
+  { label: "Description", value: (_firm, product) => richTextToPlainText(product.description) }
 ];
 
 const TECH_EXPORT_COLUMNS: ExportColumn<TechCapability>[] = [
@@ -322,6 +324,7 @@ function FirmDatasetExportModal<T>({
         </div>
 
         <div
+          className="export-preview-table"
           aria-label={`${datasetLabel} export preview`}
           style={{
             border: "1px solid var(--line)",
@@ -365,6 +368,21 @@ function FirmDatasetExportModal<T>({
             </tbody>
           </table>
         </div>
+        <div className="export-preview-cards" aria-label={`${datasetLabel} export preview cards`}>
+          {rows.map((row, rowIndex) => (
+            <article key={rowIndex} className="mobile-record-card">
+              <div className="mobile-record-card__primary">Row {rowIndex + 1}</div>
+              <dl className="mobile-record-card__details">
+                {previewColumns.map((column) => (
+                  <div key={column.label} className="mobile-record-card__field">
+                    <dt>{column.label}</dt>
+                    <dd>{formatExportValue(column.value(firm, row)) || "-"}</dd>
+                  </div>
+                ))}
+              </dl>
+            </article>
+          ))}
+        </div>
       </div>
     </Modal>
   );
@@ -400,12 +418,12 @@ export default function FirmProfilePage({ params }: { params: Promise<{ firmId: 
   const esg = db.esg.filter((r) => r.firm_id === firmId);
   const source = db.sources.find((s) => s.source_id === firm.source_id);
   const detailTabs = [
-    { key: "overview", label: "Overview" },
-    { key: "products", label: `Components (${products.length})`, hint: "Satellite component records" },
-    ...(tech.length || facilities.length ? [{ key: "tech", label: `Tech & Infrastructure (${tech.length + facilities.length})` }] : []),
-    ...(hrRows.length ? [{ key: "workforce", label: `Workforce (${hrRows.length})` }] : []),
-    ...(outLinks.length + inLinks.length ? [{ key: "supply", label: `Supply Chain (${outLinks.length + inLinks.length})` }] : []),
-    ...(esg.length ? [{ key: "esg", label: `ESG (${esg.length})` }] : [])
+    { key: "overview", label: "Overview", icon: House },
+    { key: "products", label: `Components (${products.length})`, hint: "Satellite component records", icon: Package },
+    ...(tech.length || facilities.length ? [{ key: "tech", label: `Tech & Infrastructure (${tech.length + facilities.length})`, icon: Cpu }] : []),
+    ...(hrRows.length ? [{ key: "workforce", label: `Workforce (${hrRows.length})`, icon: Users }] : []),
+    ...(outLinks.length + inLinks.length ? [{ key: "supply", label: `Supply Chain (${outLinks.length + inLinks.length})`, icon: Network }] : []),
+    ...(esg.length ? [{ key: "esg", label: `ESG (${esg.length})`, icon: Leaf }] : [])
   ];
 
   function firmName(id: string) {
@@ -416,13 +434,17 @@ export default function FirmProfilePage({ params }: { params: Promise<{ firmId: 
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
+      <header className="page-header-actions" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
         <div>
-          <div style={{ fontSize: 12, color: "var(--muted)" }}>
-            <Link href="/firms" style={{ color: "var(--muted)" }}>
-              â† Companies
-            </Link>
-          </div>
+          <nav aria-label="Breadcrumb" className="breadcrumb">
+            <ol>
+              <li>
+                <Link href="/firms">Companies</Link>
+              </li>
+              <li aria-hidden="true">/</li>
+              <li aria-current="page">{firm.firm_name}</li>
+            </ol>
+          </nav>
           <h1 style={{ margin: "6px 0 0", fontSize: 28, fontWeight: 600 }}>{firm.firm_name}</h1>
           <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
             <Badge>{firm.ownership_type}</Badge>
@@ -539,13 +561,6 @@ function ProductsTab({
   firmId: string;
   db: import("@/lib/schema").Database;
 }) {
-  const grouped: Record<string, Record<string, ProductService[]>> = {};
-  for (const component of products) {
-    if (!grouped[component.system]) grouped[component.system] = {};
-    if (!grouped[component.system][component.module]) grouped[component.system][component.module] = [];
-    grouped[component.system][component.module].push(component);
-  }
-
   return (
     <>
       <Card>
@@ -571,74 +586,8 @@ function ProductsTab({
             buttonLabel="Export Components"
           />
         </div>
-        <SubTableEditor<ProductService>
-          title="Component"
-          rows={products}
-          table="products"
-          firmId={firmId}
-          idField="product_id"
-          idPrefix="P"
-          fields={[
-            { name: "component_name", label: "Component", type: "component", required: true },
-            { name: "description", label: "Description", type: "text" }
-          ]}
-          display={[
-            {
-              key: "component",
-              header: "Component",
-              render: (component) => (
-                <div>
-                  <div style={{ fontWeight: 600 }}>{component.component_name}</div>
-                  {component.description && (
-                    <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 3, maxWidth: 420 }}>{component.description}</div>
-                  )}
-                </div>
-              )
-            },
-            { key: "system", header: "System", render: (component) => <Badge tone="accent">{component.system}</Badge> },
-            { key: "module", header: "Module", render: (component) => component.module }
-          ]}
-          emptyLabel="No component records yet. Add one from the expert System > Module > Component list."
-        />
+        <ComponentRecordsPanel rows={products} firmId={firmId} />
       </Card>
-
-      {products.length > 0 && (
-        <Card>
-          <SectionTitle hint="Components grouped by expert System and Module taxonomy.">
-            Component Composition by System
-          </SectionTitle>
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {COMPONENT_SYSTEMS.map((system) => {
-              const modules = grouped[system];
-              if (!modules) return null;
-              const count = Object.values(modules).reduce((total, rows) => total + rows.length, 0);
-              return (
-                <div key={system} style={{ padding: 12, background: "var(--surface-muted)", borderRadius: 10 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, gap: 12 }}>
-                    <strong style={{ fontSize: 14 }}>{system}</strong>
-                    <Badge tone="accent">{count} component{count === 1 ? "" : "s"}</Badge>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {Object.entries(modules).map(([module, rows]) => (
-                      <div key={module} style={{ fontSize: 13 }}>
-                        <div style={{ color: "var(--ink-soft)", fontWeight: 600, marginBottom: 4 }}>{module}</div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                          {rows.map((component) => (
-                            <div key={component.product_id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                              <code style={{ fontSize: 11, color: "var(--muted)" }}>{component.product_id}</code>
-                              <span>{component.component_name}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-      )}
     </>
   );
 }
@@ -681,18 +630,18 @@ function TechTab({
           idPrefix="T"
           fields={[
             { name: "core_technology", label: "Core technology", type: "enum", options: db.vocab.core_technologies, required: true },
-            { name: "trl_level", label: "TRL (1â€“9)", type: "number", required: true, min: 1, max: 9 },
-            { name: "rd_expenditure_mthb", label: "R&D expenditure (Mà¸¿)", type: "number" },
+            { name: "trl_level", label: "TRL (1-9)", type: "number", required: true, min: 1, max: 9 },
+            { name: "rd_expenditure_mthb", label: "R&D expenditure (MTHB)", type: "number" },
             { name: "rd_personnel", label: "R&D personnel", type: "number" },
             { name: "patents_count", label: "Patents count", type: "number" },
             { name: "patent_field", label: "Patent field", type: "text" },
-            { name: "digitalization_level", label: "Digitalization (0â€“5)", type: "number", min: 0, max: 5 }
+            { name: "digitalization_level", label: "Digitalization (0-5)", type: "number", min: 0, max: 5 }
           ]}
           display={[
             { key: "tech", header: "Core technology", render: (r) => r.core_technology },
             { key: "trl", header: "TRL", render: (r) => <Badge tone="accent">TRL {r.trl_level}</Badge> },
-            { key: "rd", header: "R&D", render: (r) => `${r.rd_expenditure_mthb} Mà¸¿ Â· ${r.rd_personnel} staff` },
-            { key: "pat", header: "Patents", render: (r) => `${r.patents_count}${r.patent_field ? ` Â· ${r.patent_field}` : ""}` },
+            { key: "rd", header: "R&D", render: (r) => `${r.rd_expenditure_mthb} MTHB - ${r.rd_personnel} staff` },
+            { key: "pat", header: "Patents", render: (r) => `${r.patents_count}${r.patent_field ? ` - ${r.patent_field}` : ""}` },
             { key: "dig", header: "Digital", render: (r) => `${r.digitalization_level}/5` }
           ]}
         />
@@ -728,8 +677,8 @@ function TechTab({
           display={[
             { key: "lab", header: "Lab", render: (r) => (r.testing_lab ? "Yes" : "No") },
             { key: "sim", header: "Sim tools", render: (r) => (r.simulation_tools ? "Yes" : "No") },
-            { key: "mfg", header: "Manufacturing", render: (r) => r.manufacturing_process ?? "â€”" },
-            { key: "sw", header: "Software", render: (r) => r.software_capability ?? "â€”" }
+            { key: "mfg", header: "Manufacturing", render: (r) => r.manufacturing_process ?? "-" },
+            { key: "sw", header: "Software", render: (r) => r.software_capability ?? "-" }
           ]}
         />
       </Card>
@@ -767,8 +716,8 @@ function WorkforceTab({ firm, hr, firmId }: { firm: Firm; hr: HRProfile[]; firmI
         display={[
           { key: "tech", header: "Technicians", render: (r) => r.technician_count },
           { key: "spec", header: "Specialization", render: (r) => r.skill_specialization },
-          { key: "train", header: "Training", render: (r) => r.training_programs ?? "â€”" },
-          { key: "gap", header: "Skill gap", render: (r) => r.skill_gap ?? "â€”" }
+          { key: "train", header: "Training", render: (r) => r.training_programs ?? "-" },
+          { key: "gap", header: "Skill gap", render: (r) => r.skill_gap ?? "-" }
         ]}
       />
     </Card>
@@ -833,7 +782,7 @@ function SupplyTab({
           fields={[
             { name: "partner_firm_id", label: "Partner company ID", type: "enum", options: firmOptions, required: true },
             { name: "linkage_type", label: "Linkage type", type: "enum", options: db.vocab.linkage_types, required: true },
-            { name: "dependency_level", label: "Dependency (0â€“5)", type: "number", min: 0, max: 5 },
+            { name: "dependency_level", label: "Dependency (0-5)", type: "number", min: 0, max: 5 },
             { name: "domestic_or_import", label: "Origin", type: "enum", options: ["Domestic", "Import"] }
           ]}
           display={[
@@ -859,8 +808,8 @@ function SupplyTab({
             {inLinks.map((l) => (
               <div key={l.linkage_id} style={{ fontSize: 13, padding: "4px 0" }}>
                 <Badge>{l.linkage_type}</Badge>{" "}
-                â† <Link href={`/firms/${l.firm_id}`} style={{ color: "var(--primary)" }}>{firmName(l.firm_id)}</Link>{" "}
-                Â· dep {l.dependency_level}/5
+                From <Link href={`/firms/${l.firm_id}`} style={{ color: "var(--primary)" }}>{firmName(l.firm_id)}</Link>{" "}
+                - dep {l.dependency_level}/5
               </div>
             ))}
           </div>
@@ -928,24 +877,24 @@ function ESGTab({ firm, esg, firmId }: { firm: Firm; esg: SustainabilityESG[]; f
         fields={[
           { name: "energy_consumption_mwh", label: "Energy (MWh)", type: "number" },
           { name: "renewable_energy_ratio", label: "Renewable %", type: "number", min: 0, max: 100 },
-          { name: "carbon_emission_tco2", label: "COâ‚‚ (tCOâ‚‚e)", type: "number" },
+          { name: "carbon_emission_tco2", label: "CO2 (tCO2e)", type: "number" },
           { name: "waste_management_system", label: "Waste mgmt", type: "bool" },
           { name: "esg_certification", label: "ESG certification", type: "text" }
         ]}
         display={[
           { key: "en", header: "Energy", render: (r) => `${r.energy_consumption_mwh} MWh` },
           { key: "rn", header: "Renewable", render: (r) => `${r.renewable_energy_ratio}%` },
-          { key: "co2", header: "COâ‚‚", render: (r) => `${r.carbon_emission_tco2} t` },
+          { key: "co2", header: "CO2", render: (r) => `${r.carbon_emission_tco2} t` },
           { key: "wst", header: "Waste mgmt", render: (r) => (r.waste_management_system ? "Yes" : "No") },
-          { key: "cert", header: "Certification", render: (r) => r.esg_certification ?? "â€”" }
+          { key: "cert", header: "Certification", render: (r) => r.esg_certification ?? "-" }
         ]}
       />
       {esg.length > 0 && (
         <Grid cols={4} gap={12} style={{ marginTop: 16 }}>
           <Stat label="Energy" value={`${esg[0].energy_consumption_mwh} MWh`} />
           <Stat label="Renewable" value={`${esg[0].renewable_energy_ratio}%`} />
-          <Stat label="COâ‚‚" value={`${esg[0].carbon_emission_tco2} tCOâ‚‚e`} />
-          <Stat label="Waste mgmt" value={esg[0].waste_management_system ? "Yes" : "No"} hint={esg[0].esg_certification ?? "â€”"} />
+          <Stat label="CO2" value={`${esg[0].carbon_emission_tco2} tCO2e`} />
+          <Stat label="Waste mgmt" value={esg[0].waste_management_system ? "Yes" : "No"} hint={esg[0].esg_certification ?? "-"} />
         </Grid>
       )}
     </Card>

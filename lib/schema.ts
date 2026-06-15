@@ -42,6 +42,7 @@ export interface FirmSizeFinance {
 export interface ProductService {
   product_id: string;
   firm_id: string;
+  product_name: string;
   component_name: string;
   system: string;
   module: string;
@@ -188,8 +189,8 @@ export const DEFAULT_VOCAB: Vocab = {
     "LEO IoT NB-IoT over satellite"
   ],
   component_systems: [...COMPONENT_SYSTEMS],
-  component_modules: COMPONENT_SYSTEMS.flatMap((system) => modulesForSystem(system)),
-  component_names: allComponentNames()
+  component_modules: Array.from(new Set(COMPONENT_SYSTEMS.flatMap((system) => modulesForSystem(system)))),
+  component_names: Array.from(new Set(allComponentNames()))
 };
 
 export function roleAtLeast(current: Role, needed: Role): boolean {

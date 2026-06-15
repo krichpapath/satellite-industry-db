@@ -98,17 +98,9 @@ const SCHEMA_SQL = `
     product_id TEXT PRIMARY KEY,
     firm_id TEXT NOT NULL REFERENCES firms(firm_id) ON DELETE CASCADE,
     product_name TEXT NOT NULL,
-    value_chain_stage TEXT NOT NULL CHECK (value_chain_stage IN ('Upstream', 'Midstream', 'Downstream')),
-    technology_intensity TEXT NOT NULL CHECK (technology_intensity IN ('Low', 'Medium', 'High')),
-    main_market TEXT,
-    certification TEXT,
-    sia_category TEXT,
-    itu_service_class TEXT,
-    orbit_type TEXT,
-    frequency_band TEXT,
-    naics_code TEXT,
-    hs_code TEXT,
-    product_trl INTEGER CHECK (product_trl IS NULL OR product_trl BETWEEN 1 AND 9),
+    system TEXT NOT NULL DEFAULT 'Unidentified',
+    module TEXT NOT NULL DEFAULT 'Unidentified',
+    component_name TEXT NOT NULL DEFAULT 'Unidentified',
     description TEXT,
     source_id TEXT REFERENCES data_sources(source_id) ON DELETE SET NULL,
     visibility_level TEXT NOT NULL DEFAULT 'internal'
@@ -119,9 +111,40 @@ const SCHEMA_SQL = `
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   );
 
+  ALTER TABLE products_services
+    ADD COLUMN IF NOT EXISTS system TEXT NOT NULL DEFAULT 'Unidentified',
+    ADD COLUMN IF NOT EXISTS module TEXT NOT NULL DEFAULT 'Unidentified',
+    ADD COLUMN IF NOT EXISTS component_name TEXT NOT NULL DEFAULT 'Unidentified';
+
+  UPDATE products_services
+  SET
+    product_name = COALESCE(NULLIF(product_name, ''), NULLIF(component_name, ''), 'Unspecified product'),
+    system = COALESCE(NULLIF(system, ''), 'Unidentified'),
+    module = COALESCE(NULLIF(module, ''), 'Unidentified'),
+    component_name = COALESCE(NULLIF(component_name, ''), NULLIF(product_name, ''), 'Unidentified');
+
+  DO $$
+  BEGIN
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = 'products_services' AND column_name = 'value_chain_stage'
+    ) THEN
+      ALTER TABLE products_services ALTER COLUMN value_chain_stage DROP NOT NULL;
+    END IF;
+
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = 'products_services' AND column_name = 'technology_intensity'
+    ) THEN
+      ALTER TABLE products_services ALTER COLUMN technology_intensity DROP NOT NULL;
+    END IF;
+  END $$;
+
+  DROP INDEX IF EXISTS idx_products_stage_intensity;
+  DROP INDEX IF EXISTS idx_products_sia;
   CREATE INDEX IF NOT EXISTS idx_products_firm ON products_services (firm_id);
-  CREATE INDEX IF NOT EXISTS idx_products_stage_intensity ON products_services (value_chain_stage, technology_intensity);
-  CREATE INDEX IF NOT EXISTS idx_products_sia ON products_services (sia_category);
+  CREATE INDEX IF NOT EXISTS idx_products_system_module ON products_services (system, module);
+  CREATE INDEX IF NOT EXISTS idx_products_component ON products_services (component_name);
 
   CREATE TABLE IF NOT EXISTS technology_capability (
     tech_id TEXT PRIMARY KEY,
@@ -394,23 +417,15 @@ const TABLES = {
       "product_id",
       "firm_id",
       "product_name",
-      "value_chain_stage",
-      "technology_intensity",
-      "main_market",
-      "certification",
-      "sia_category",
-      "itu_service_class",
-      "orbit_type",
-      "frequency_band",
-      "naics_code",
-      "hs_code",
-      "product_trl",
+      "system",
+      "module",
+      "component_name",
       "description",
       "source_id",
       "visibility_level",
       "review_status"
     ],
-    required: ["firm_id", "product_name", "value_chain_stage", "technology_intensity"]
+    required: ["firm_id", "product_name", "system", "module", "component_name"]
   },
   tech: {
     table: "technology_capability",
@@ -626,6 +641,29 @@ function cleanValue(column, value) {
   return value;
 }
 
+function cleanSystemLabel(value) {
+  return String(value ?? "").replace(/^\s*\d+\.\s*/, "").trim();
+}
+
+function cleanComponentLabel(value) {
+  return String(value ?? "").replace(/^\s*(?:•|â€¢)\s*/, "").trim();
+}
+
+function normalizeProductRow(row) {
+  const system = cleanSystemLabel(row.system ?? "");
+  const isUnidentified = system === "Unidentified" || !system;
+  const module = isUnidentified ? "Unidentified" : row.module ?? "Unidentified";
+  const componentName = cleanComponentLabel(row.component_name ?? "");
+  const isComponentUnidentified = module === "Unidentified";
+  return {
+    ...row,
+    product_name: row.product_name || componentName || "Unspecified product",
+    system: isUnidentified ? "Unidentified" : system,
+    module,
+    component_name: isUnidentified || isComponentUnidentified ? "Unidentified" : componentName || "Unidentified"
+  };
+}
+
 function assertRequired(config, row) {
   for (const key of config.required || []) {
     if (row[key] === undefined || row[key] === null || row[key] === "") {
@@ -759,12 +797,13 @@ function buildUpsert(config, cols) {
 
 function prepareRow(key, row, sourceIds = null) {
   const config = TABLES[key];
+  const input = key === "products" ? normalizeProductRow(row) : row;
   const out = {};
   for (const col of config.columns) {
-    if (row[col] !== undefined) out[col] = cleanValue(col, row[col]);
+    if (input[col] !== undefined) out[col] = cleanValue(col, input[col]);
   }
-  if (key === "firms" && row.last_updated_ts && !out.updated_at) {
-    out.updated_at = row.last_updated_ts;
+  if (key === "firms" && input.last_updated_ts && !out.updated_at) {
+    out.updated_at = input.last_updated_ts;
   }
   if (out.source_id && sourceIds && !sourceIds.has(out.source_id)) {
     out.source_id = null;
@@ -800,7 +839,9 @@ async function deleteRow(client, key, id) {
 async function listRows(clientOrPool, key) {
   const config = TABLES[key];
   const order = key === "audit" ? "ts DESC" : `${config.id} ASC`;
-  const result = await clientOrPool.query(`SELECT * FROM ${config.table} ORDER BY ${order} LIMIT 5000`);
+  const result = await clientOrPool.query(
+    `SELECT ${config.columns.join(", ")} FROM ${config.table} ORDER BY ${order} LIMIT 5000`
+  );
   return result.rows;
 }
 

@@ -42,6 +42,7 @@ export function Button({
   disabled,
   title,
   ariaLabel,
+  className = "",
   style
 }: {
   children: React.ReactNode;
@@ -51,6 +52,7 @@ export function Button({
   disabled?: boolean;
   title?: string;
   ariaLabel?: string;
+  className?: string;
   style?: React.CSSProperties;
 }) {
   const palette: Record<BtnVariant, React.CSSProperties> = {
@@ -64,19 +66,25 @@ export function Button({
       type={type}
       title={title}
       aria-label={ariaLabel}
+      className={`satdb-button ${className}`}
       onClick={onClick}
       disabled={disabled}
       style={{
         ...palette[variant],
         border: "1px solid",
-        padding: "8px 14px",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        padding: "9px 14px",
         borderRadius: 10,
         fontWeight: 500,
         fontSize: 14,
         cursor: disabled ? "not-allowed" : "pointer",
         opacity: disabled ? 0.5 : 1,
         transition: "transform .04s ease",
-        ...style
+        ...style,
+        minHeight: 44
       }}
     >
       {children}
@@ -88,8 +96,10 @@ export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}
+      className={`satdb-input ${props.className ?? ""}`}
       style={{
         width: "100%",
+        minHeight: 44,
         padding: "9px 12px",
         border: "1px solid var(--line)",
         borderRadius: 10,
@@ -106,8 +116,10 @@ export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <select
       {...props}
+      className={`satdb-input ${props.className ?? ""}`}
       style={{
         width: "100%",
+        minHeight: 44,
         padding: "9px 12px",
         border: "1px solid var(--line)",
         borderRadius: 10,
@@ -124,8 +136,10 @@ export function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement
   return (
     <textarea
       {...props}
+      className={`satdb-input ${props.className ?? ""}`}
       style={{
         width: "100%",
+        minHeight: 120,
         padding: "9px 12px",
         border: "1px solid var(--line)",
         borderRadius: 10,
@@ -142,11 +156,13 @@ export function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement
 export function Field({
   label,
   children,
-  required
+  required,
+  helper
 }: {
   label: string;
   children: React.ReactNode;
   required?: boolean;
+  helper?: string;
 }) {
   return (
     <label style={{ display: "block" }}>
@@ -155,6 +171,7 @@ export function Field({
         {required && <span style={{ color: "var(--danger)" }}> *</span>}
       </div>
       {children}
+      {helper && <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 12, lineHeight: 1.45 }}>{helper}</div>}
     </label>
   );
 }
@@ -207,13 +224,21 @@ export function Stat({ label, value, hint, className = "", accent }: { label: st
 }
 
 export function Grid({ cols, gap = 16, children, style }: { cols: number; gap?: number; children: React.ReactNode; style?: React.CSSProperties }) {
+  const { gridTemplateColumns, ...restStyle } = style ?? {};
+  const gridStyle = {
+    "--grid-cols": String(cols),
+    "--grid-template": gridTemplateColumns ?? `repeat(${cols}, minmax(0, 1fr))`
+  } as React.CSSProperties;
+
   return (
     <div
+      className="responsive-grid"
       style={{
+        ...gridStyle,
         display: "grid",
-        gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+        gridTemplateColumns: "var(--grid-template)",
         gap,
-        ...style
+        ...restStyle
       }}
     >
       {children}
@@ -242,10 +267,20 @@ export function Modal({
   footer?: React.ReactNode;
   maxWidth?: number | string;
 }) {
+  React.useEffect(() => {
+    if (!open) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose, open]);
+
   if (!open) return null;
   return (
     <div
       onClick={onClose}
+      className="modal-backdrop"
       style={{
         position: "fixed",
         inset: 0,
@@ -258,6 +293,10 @@ export function Modal({
       }}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+        className="modal-panel"
         onClick={(e) => e.stopPropagation()}
         style={{
           background: "var(--surface)",
@@ -271,17 +310,24 @@ export function Modal({
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 600 }}>{title}</h3>
+          <h3 id="modal-title" style={{ margin: 0, fontSize: 17, fontWeight: 600 }}>{title}</h3>
           <Button variant="ghost" onClick={onClose} ariaLabel={`Close ${title}`} style={{ padding: "4px 10px" }}>
             Close
           </Button>
         </div>
         <div>{children}</div>
-        {footer && <div style={{ marginTop: 18, display: "flex", justifyContent: "flex-end", gap: 8 }}>{footer}</div>}
+        {footer && <div className="modal-footer" style={{ marginTop: 18, display: "flex", justifyContent: "flex-end", gap: 8 }}>{footer}</div>}
       </div>
     </div>
   );
 }
+
+type TableColumn<T> = {
+  key: string;
+  header: string;
+  render: (row: T) => React.ReactNode;
+  width?: string | number;
+};
 
 export function Table<T>({
   rows,
@@ -289,13 +335,17 @@ export function Table<T>({
   empty = "No data"
 }: {
   rows: T[];
-  columns: { key: string; header: string; render: (row: T) => React.ReactNode; width?: string | number }[];
+  columns: TableColumn<T>[];
   empty?: string;
 }) {
   if (rows.length === 0) return <EmptyState message={empty} />;
+  const primaryColumn = columns.find((column) => column.header.trim()) ?? columns[0];
+  const actionColumns = columns.filter((column) => !column.header.trim() || column.key === "actions" || column.key === "_actions");
+  const detailColumns = columns.filter((column) => column !== primaryColumn && !actionColumns.includes(column));
   return (
-    <div style={{ overflowX: "auto", maxWidth: "100%" }}>
-      <table style={{ width: "100%", minWidth: 720, borderCollapse: "collapse", fontSize: 14 }}>
+    <>
+      <div className="table-scroll" style={{ overflowX: "auto", maxWidth: "100%" }}>
+      <table className="data-table" style={{ width: "100%", minWidth: 720, borderCollapse: "collapse", fontSize: 14 }}>
         <thead>
           <tr style={{ borderBottom: "1px solid var(--line)" }}>
             {columns.map((c) => (
@@ -330,6 +380,33 @@ export function Table<T>({
         </tbody>
       </table>
     </div>
+      <div className="mobile-record-list" aria-label="Records">
+        {rows.map((row, index) => (
+          <article className="mobile-record-card" key={index}>
+            <div className="mobile-record-card__primary">
+              {primaryColumn.render(row)}
+            </div>
+            {detailColumns.length > 0 && (
+              <dl className="mobile-record-card__details">
+                {detailColumns.map((column) => (
+                  <div key={column.key} className="mobile-record-card__field">
+                    <dt>{column.header}</dt>
+                    <dd>{column.render(row)}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+            {actionColumns.length > 0 && (
+              <div className="mobile-record-card__actions">
+                {actionColumns.map((column) => (
+                  <React.Fragment key={column.key}>{column.render(row)}</React.Fragment>
+                ))}
+              </div>
+            )}
+          </article>
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -442,40 +519,65 @@ export function Tabs({
   active,
   onChange
 }: {
-  tabs: { key: string; label: string; hint?: string }[];
+  tabs: {
+    key: string;
+    label: string;
+    hint?: string;
+    icon?: React.ComponentType<React.SVGProps<SVGSVGElement> & { size?: number; strokeWidth?: number }>;
+  }[];
   active: string;
   onChange: (key: string) => void;
 }) {
+  function moveFocus(event: React.KeyboardEvent<HTMLButtonElement>, nextIndex: number) {
+    const buttons = Array.from(
+      event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('button[role="tab"]') ?? []
+    );
+    const next = buttons[nextIndex];
+    if (!next) return;
+    onChange(tabs[nextIndex].key);
+    window.requestAnimationFrame(() => next.focus());
+  }
+
   return (
     <div
-      style={{
-        display: "flex",
-        gap: 4,
-        borderBottom: "1px solid var(--line)",
-        overflowX: "auto"
-      }}
-      className="no-scrollbar"
+      role="tablist"
+      aria-label="Company detail sections"
+      className="company-tabs no-scrollbar"
     >
-      {tabs.map((t) => {
+      {tabs.map((t, index) => {
         const isActive = t.key === active;
+        const Icon = t.icon;
         return (
           <button
             key={t.key}
+            type="button"
+            role="tab"
+            aria-selected={isActive}
+            aria-current={isActive ? "page" : undefined}
             onClick={() => onChange(t.key)}
-            title={t.hint}
-            style={{
-              border: "none",
-              background: "transparent",
-              padding: "10px 14px",
-              fontSize: 14,
-              fontWeight: isActive ? 600 : 500,
-              color: isActive ? "var(--primary)" : "var(--ink-soft)",
-              borderBottom: isActive ? "2px solid var(--primary)" : "2px solid transparent",
-              marginBottom: -1,
-              cursor: "pointer",
-              whiteSpace: "nowrap"
+            onKeyDown={(event) => {
+              if (event.key === "ArrowRight") {
+                event.preventDefault();
+                moveFocus(event, (index + 1) % tabs.length);
+              }
+              if (event.key === "ArrowLeft") {
+                event.preventDefault();
+                moveFocus(event, (index - 1 + tabs.length) % tabs.length);
+              }
+              if (event.key === "Home") {
+                event.preventDefault();
+                moveFocus(event, 0);
+              }
+              if (event.key === "End") {
+                event.preventDefault();
+                moveFocus(event, tabs.length - 1);
+              }
             }}
+            title={t.hint}
+            className="company-tabs__trigger"
+            data-active={isActive ? "true" : "false"}
           >
+            {Icon && <Icon size={16} strokeWidth={2} aria-hidden="true" />}
             {t.label}
           </button>
         );

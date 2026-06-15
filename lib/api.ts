@@ -1,6 +1,7 @@
 import type { Database, Firm, OwnershipType } from "./schema";
 import { DEFAULT_VOCAB } from "./schema";
-import { COMPONENT_SYSTEMS, findComponentPath, modulesForSystem } from "./component-taxonomy";
+import { COMPONENT_SYSTEMS, cleanComponentLabel, findComponentPath, modulesForSystem, normalizeSystem } from "./component-taxonomy";
+import { sanitizeRichText } from "./rich-text";
 
 const rawApiBase = process.env.NEXT_PUBLIC_API_BASE_URL?.trim() ?? "";
 export const API_BASE_URL = rawApiBase.replace(/\/+$/, "");
@@ -145,19 +146,40 @@ function normalizeFinance(row: RawRecord): Database["size_finance"][number] {
 }
 
 function normalizeProduct(row: RawRecord): Database["products"][number] {
-  const componentName = toString(row.component_name ?? row.product_name);
+  const productName = toString(row.product_name ?? row.component_name);
+  const componentName = cleanComponentLabel(toString(row.component_name ?? row.sia_category)) || productName;
   const path = findComponentPath(componentName);
   const fallbackSystem = COMPONENT_SYSTEMS[0] ?? "";
   const fallbackModule = fallbackSystem ? modulesForSystem(fallbackSystem)[0] ?? "" : "";
 
+  const system = normalizeSystem(toString(row.system ?? row.orbit_type ?? path?.system, fallbackSystem));
+  const module = system === "Unidentified" ? "Unidentified" : toString(row.module ?? row.itu_service_class ?? path?.module, fallbackModule);
+  const normalizedComponentName = system === "Unidentified" || module === "Unidentified" ? "Unidentified" : componentName;
+
   return {
     product_id: toString(row.product_id),
     firm_id: toString(row.firm_id),
-    component_name: componentName || "Unspecified component",
-    system: toString(row.system ?? path?.system, fallbackSystem),
-    module: toString(row.module ?? path?.module, fallbackModule),
-    description: toString(row.description) || undefined
+    product_name: productName || normalizedComponentName || "Unspecified product",
+    component_name: normalizedComponentName || "Unspecified component",
+    system,
+    module,
+    description: sanitizeRichText(row.description) || undefined
   } as Database["products"][number];
+}
+
+function productForApi(row: Database["products"][number]): RawRecord {
+  const normalized = normalizeProduct(row as unknown as RawRecord);
+  return {
+    ...normalized,
+    // Compatibility for the currently deployed AWS Lambda, which still validates
+    // the old products_services taxonomy. These fields are ignored by the new
+    // Lambda but let the current live API persist and round-trip component data.
+    value_chain_stage: "Upstream",
+    technology_intensity: "Medium",
+    sia_category: normalized.component_name,
+    itu_service_class: normalized.module,
+    orbit_type: normalized.system
+  };
 }
 
 function normalizeTech(row: RawRecord): Database["tech"][number] {
@@ -300,8 +322,11 @@ export async function getDataset(): Promise<Database> {
   return normalizeDatabase(data);
 }
 
-function sanitizeDatasetForApi(db: Database): Database {
-  return db;
+function sanitizeDatasetForApi(db: Database): RawRecord {
+  return {
+    ...db,
+    products: db.products.map(productForApi)
+  };
 }
 
 export async function saveDataset(db: Database): Promise<{ ok: boolean; counts?: Record<string, number> }> {
@@ -371,7 +396,7 @@ export async function deleteFirm(firmId: string): Promise<void> {
 export async function createRecord<K extends ApiTableKey>(table: K, row: RowFor<K>): Promise<RowFor<K>> {
   const res = await apiFetch(TABLE_PATHS[table], {
     method: "POST",
-    body: JSON.stringify(row)
+    body: JSON.stringify(table === "products" ? productForApi(row as Database["products"][number]) : row)
   });
   return (await res.json()) as RowFor<K>;
 }
@@ -383,7 +408,7 @@ export async function updateRecord<K extends ApiTableKey>(
 ): Promise<RowFor<K>> {
   const res = await apiFetch(`${TABLE_PATHS[table]}/${encodeURIComponent(id)}`, {
     method: "PUT",
-    body: JSON.stringify(row)
+    body: JSON.stringify(table === "products" ? productForApi(row as Database["products"][number]) : row)
   });
   return (await res.json()) as RowFor<K>;
 }

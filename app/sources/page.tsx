@@ -61,14 +61,14 @@ export default function SourcesPage() {
   return (
     <RequireRole min="Analyst" fallback={<LockedNote min="Analyst" />}>
       <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-        <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <header className="page-header-actions" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
           <div>
             <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600 }}>Data Sources</h1>
             <div style={{ color: "var(--muted)", marginTop: 6, fontSize: 14 }}>
               Provenance registry for company and component datasets.
             </div>
           </div>
-          <Button onClick={() => setCreating(true)}>+ New source</Button>
+          <Button onClick={() => setCreating(true)}>New source</Button>
         </header>
 
         <Card>
@@ -170,10 +170,10 @@ function SourceModal({
           <Input value={form.owner ?? ""} onChange={(e) => up("owner", e.target.value)} />
         </Field>
         <Field label="URL">
-          <Input value={form.url ?? ""} onChange={(e) => up("url", e.target.value)} />
+          <Input type="url" inputMode="url" value={form.url ?? ""} onChange={(e) => up("url", e.target.value)} />
         </Field>
         <Field label="Last synced (YYYY-MM-DD)">
-          <Input value={form.last_synced ?? ""} onChange={(e) => up("last_synced", e.target.value)} />
+          <Input type="date" value={form.last_synced ?? ""} onChange={(e) => up("last_synced", e.target.value)} />
         </Field>
         <Field label="Notes">
           <Input value={form.notes ?? ""} onChange={(e) => up("notes", e.target.value)} />

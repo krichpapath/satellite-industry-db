@@ -46,7 +46,7 @@ export default function SearchPage() {
           company.industrial_zone ?? "",
           company.parent_company ?? "",
           company.registration_no,
-          ...components.flatMap((component) => [component.component_name, component.system, component.module, component.description ?? ""])
+          ...components.flatMap((component) => [component.product_name, component.component_name, component.system, component.module, component.description ?? ""])
         ].join(" ").toLowerCase();
         if (!hay.includes(kw)) return false;
       }
@@ -103,7 +103,7 @@ export default function SearchPage() {
               onChange={(e) => setKeyword(e.target.value)}
             />
           </Field>
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
+          <div className="search-filter-actions" style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
             <Button variant="secondary" onClick={() => setAdvanced((v) => !v)}>
               {advanced ? "Hide filters" : "Show filters"}
             </Button>

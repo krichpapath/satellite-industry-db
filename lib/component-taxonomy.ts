@@ -171,17 +171,48 @@ export const SATELLITE_COMPONENT_TAXONOMY = {
 
 export type ComponentSystem = keyof typeof SATELLITE_COMPONENT_TAXONOMY;
 
-export const COMPONENT_SYSTEMS = Object.keys(SATELLITE_COMPONENT_TAXONOMY) as ComponentSystem[];
+export const UNIDENTIFIED_VALUE = "Unidentified";
+
+const RAW_COMPONENT_SYSTEMS = Object.keys(SATELLITE_COMPONENT_TAXONOMY) as ComponentSystem[];
+
+export function cleanSystemLabel(system: string): string {
+  return String(system ?? "").replace(/^\s*\d+\.\s*/, "").trim();
+}
+
+export function cleanComponentLabel(component: string): string {
+  return String(component ?? "").replace(/^\s*(?:•|â€¢)\s*/, "").trim();
+}
+
+function rawSystemFor(system: string): ComponentSystem | undefined {
+  const value = String(system ?? "").trim();
+  return RAW_COMPONENT_SYSTEMS.find((option) => option === value || cleanSystemLabel(option) === value);
+}
+
+export function normalizeSystem(system: string): string {
+  if (String(system ?? "").trim() === UNIDENTIFIED_VALUE) return UNIDENTIFIED_VALUE;
+  const raw = rawSystemFor(system);
+  return raw ? cleanSystemLabel(raw) : String(system ?? "").trim();
+}
+
+export const COMPONENT_SYSTEMS = [
+  ...RAW_COMPONENT_SYSTEMS.map(cleanSystemLabel),
+  UNIDENTIFIED_VALUE
+];
 
 export function modulesForSystem(system: string): string[] {
-  const modules = SATELLITE_COMPONENT_TAXONOMY[system as ComponentSystem];
-  return modules ? Object.keys(modules) : [];
+  if (normalizeSystem(system) === UNIDENTIFIED_VALUE) return [UNIDENTIFIED_VALUE];
+  const rawSystem = rawSystemFor(system);
+  const modules = rawSystem ? SATELLITE_COMPONENT_TAXONOMY[rawSystem] : undefined;
+  return modules ? [...Object.keys(modules), UNIDENTIFIED_VALUE] : [UNIDENTIFIED_VALUE];
 }
 
 export function componentsForModule(system: string, module: string): string[] {
-  const modules = SATELLITE_COMPONENT_TAXONOMY[system as ComponentSystem];
-  if (!modules) return [];
-  return [...(modules[module as keyof typeof modules] ?? [])];
+  if (normalizeSystem(system) === UNIDENTIFIED_VALUE || module === UNIDENTIFIED_VALUE) return [UNIDENTIFIED_VALUE];
+  const rawSystem = rawSystemFor(system);
+  const modules = rawSystem ? SATELLITE_COMPONENT_TAXONOMY[rawSystem] : undefined;
+  if (!modules) return [UNIDENTIFIED_VALUE];
+  const components = [...(modules[module as keyof typeof modules] ?? [])].map(cleanComponentLabel);
+  return [...components, UNIDENTIFIED_VALUE];
 }
 
 export function allComponentNames(): string[] {
@@ -191,9 +222,13 @@ export function allComponentNames(): string[] {
 }
 
 export function findComponentPath(componentName: string) {
+  const cleanedComponentName = cleanComponentLabel(componentName);
+  if (cleanedComponentName === UNIDENTIFIED_VALUE) {
+    return { system: UNIDENTIFIED_VALUE, module: UNIDENTIFIED_VALUE };
+  }
   for (const system of COMPONENT_SYSTEMS) {
     for (const module of modulesForSystem(system)) {
-      if (componentsForModule(system, module).includes(componentName)) {
+      if (componentsForModule(system, module).includes(cleanedComponentName)) {
         return { system, module };
       }
     }

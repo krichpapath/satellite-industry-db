@@ -197,8 +197,8 @@ export default function DashboardPage() {
                       <strong style={{ fontSize: 13 }}>{company?.firm_name ?? component.firm_id}</strong>
                       <Badge tone="accent">{component.product_id}</Badge>
                     </div>
-                    <div style={{ marginTop: 7, fontSize: 13, color: "var(--ink-soft)" }}>{component.component_name}</div>
-                    <div style={{ marginTop: 5, fontSize: 12, color: "var(--muted)" }}>{component.module}</div>
+                    <div style={{ marginTop: 7, fontSize: 13, color: "var(--ink-soft)" }}>{component.product_name || component.component_name}</div>
+                    <div style={{ marginTop: 5, fontSize: 12, color: "var(--muted)" }}>{component.component_name}</div>
                   </Link>
                 );
               })}

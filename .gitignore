@@ -4,5 +4,5 @@ out/
 tsconfig.tsbuildinfo
 .env*
 !.env.example
-
+.codex
 # Keep docs/ trackable for GitHub. Dependency folders stay ignored by node_modules/.

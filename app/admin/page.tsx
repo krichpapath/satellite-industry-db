@@ -43,7 +43,7 @@ const CSV_TARGETS: { key: keyof Database; label: string; idField: string; idPref
     label: "Components",
     idField: "product_id",
     idPrefix: "P",
-    columns: ["firm_id", "component_name", "system", "module", "description"]
+    columns: ["firm_id", "product_name", "system", "module", "component_name", "description"]
   },
   {
     key: "tech",
@@ -248,7 +248,7 @@ export default function AdminPage() {
           </Grid>
         </Card>
 
-        <div style={{ display: "flex", gap: 6 }}>
+        <div className="admin-tab-row" style={{ display: "flex", gap: 6 }}>
           {(["json", "csv", "danger"] as Tab[]).map((t) => (
             <Button key={t} variant={tab === t ? "primary" : "secondary"} onClick={() => setTab(t)}>
               {t === "json" ? "JSON Backup" : t === "csv" ? "CSV Import (ETL)" : "Danger zone"}
@@ -261,7 +261,7 @@ export default function AdminPage() {
             <SectionTitle hint="Whole-database snapshot. Round-trip with the schema in lib/schema.ts.">
               JSON Backup & Restore
             </SectionTitle>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+            <div className="admin-action-row" style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
               <Button onClick={doExport}>Show current JSON</Button>
               <Button variant="secondary" onClick={doDownload}>
                 Download .json
@@ -286,7 +286,7 @@ export default function AdminPage() {
               placeholder="Paste a database JSON here to replace the local store, then click Import."
               onChange={(e) => setJsonText(e.target.value)}
             />
-            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+            <div className="admin-action-row" style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
               <Button onClick={doImport} disabled={!jsonText.trim()}>
                 Import JSON
               </Button>
@@ -323,7 +323,7 @@ export default function AdminPage() {
               placeholder={`${csvTemplate}AcmeSat,2024,Local,,Bangkok,,https://example.com,info@example.com`}
               onChange={(e) => setCsvText(e.target.value)}
             />
-            <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+            <div className="admin-action-row" style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
               <Button variant="secondary" onClick={() => setCsvText(csvTemplate)}>
                 Insert header template
               </Button>

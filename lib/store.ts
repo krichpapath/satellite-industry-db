@@ -5,7 +5,8 @@ import type { Database, Role, AuditEntry } from "./schema";
 import { DEFAULT_VOCAB } from "./schema";
 import { SEED } from "./seed";
 import { apiConfigured, getDataset, saveDataset } from "./api";
-import { COMPONENT_SYSTEMS, findComponentPath, modulesForSystem } from "./component-taxonomy";
+import { COMPONENT_SYSTEMS, cleanComponentLabel, findComponentPath, modulesForSystem, normalizeSystem } from "./component-taxonomy";
+import { sanitizeRichText } from "./rich-text";
 
 const KEY = "satdb.v3";
 const ROLE_KEY = "satdb.role";
@@ -25,25 +26,30 @@ function migrateProducts(products: unknown, base: Database): Database["products"
   return rows
     .filter((row): row is Record<string, unknown> => typeof row === "object" && row !== null)
     .map((row, index) => {
-      const componentName = String(row.component_name ?? row.product_name ?? "").trim();
+      const productName = String(row.product_name ?? row.component_name ?? "").trim();
+      const componentName = cleanComponentLabel(String(row.component_name ?? "").trim()) || productName;
       const path = findComponentPath(componentName);
-      const system = String(row.system ?? path?.system ?? fallbackSystem).trim();
-      const module = String(row.module ?? path?.module ?? fallbackModule).trim();
+      const system = normalizeSystem(String(row.system ?? path?.system ?? fallbackSystem).trim());
+      const module = system === "Unidentified" ? "Unidentified" : String(row.module ?? path?.module ?? fallbackModule).trim();
+      const normalizedComponentName = system === "Unidentified" || module === "Unidentified" ? "Unidentified" : componentName;
 
       return {
         product_id: String(row.product_id ?? `P${String(index + 1).padStart(3, "0")}`),
         firm_id: String(row.firm_id ?? ""),
-        component_name: componentName || "Unspecified component",
+        product_name: productName || normalizedComponentName || "Unspecified product",
+        component_name: normalizedComponentName || "Unspecified component",
         system,
         module,
-        description: row.description ? String(row.description) : undefined
+        description: row.description ? sanitizeRichText(row.description) : undefined
       };
     });
 }
 
 function migrate(db: unknown): Database {
   const base = structuredClone(SEED);
-  if (!db || typeof db !== "object") return base;
+  if (!db || typeof db !== "object") {
+    return { ...base, products: migrateProducts(base.products, base) };
+  }
   const d = db as Partial<Database>;
   return {
     firms: d.firms ?? base.firms,
@@ -62,7 +68,7 @@ function migrate(db: unknown): Database {
 }
 
 function readRaw(): Database {
-  if (typeof window === "undefined") return SEED;
+  if (typeof window === "undefined") return migrate(SEED);
   try {
     const raw = window.localStorage.getItem(KEY);
     if (raw) return migrate(JSON.parse(raw));
@@ -74,9 +80,9 @@ function readRaw(): Database {
         return migrated;
       }
     }
-    return structuredClone(SEED);
+    return migrate(SEED);
   } catch {
-    return structuredClone(SEED);
+    return migrate(SEED);
   }
 }
 

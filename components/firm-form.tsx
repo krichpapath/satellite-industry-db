@@ -129,11 +129,18 @@ export function FirmForm({ initial }: { initial?: Firm }) {
           </SectionTitle>
           <Grid cols={2} gap={14}>
             <Field label="Company name" required>
-              <Input value={form.firm_name} onChange={(e) => update("firm_name", e.target.value)} />
+              <Input
+                value={form.firm_name}
+                onChange={(e) => update("firm_name", e.target.value)}
+                autoComplete="organization"
+              />
             </Field>
             <Field label="Year established">
               <Input
                 type="number"
+                inputMode="numeric"
+                min={1800}
+                max={new Date().getFullYear() + 5}
                 value={form.year_established}
                 onChange={(e) => update("year_established", parseInt(e.target.value, 10) || 0)}
               />
@@ -165,12 +172,20 @@ export function FirmForm({ initial }: { initial?: Firm }) {
             <Field label="Industrial zone / cluster">
               <Input value={form.industrial_zone ?? ""} onChange={(e) => update("industrial_zone", e.target.value)} />
             </Field>
-            <Field label="Website">
-              <Input value={form.website ?? ""} onChange={(e) => update("website", e.target.value)} />
+            <Field label="Website" helper="Use the official company or product page when available.">
+              <Input
+                type="url"
+                inputMode="url"
+                autoComplete="url"
+                value={form.website ?? ""}
+                onChange={(e) => update("website", e.target.value)}
+              />
             </Field>
             <Field label="Contact email">
               <Input
                 type="email"
+                inputMode="email"
+                autoComplete="email"
                 value={form.contact_email ?? ""}
                 onChange={(e) => update("contact_email", e.target.value)}
               />
@@ -179,7 +194,7 @@ export function FirmForm({ initial }: { initial?: Firm }) {
           {saveState && <div style={{ marginTop: 12, fontSize: 13, color: "var(--ink-soft)" }}>{saveState}</div>}
         </Card>
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div className="firm-form-actions" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
           <div>
             {editing && (
               <RequireRole min="Admin" fallback={<span style={{ fontSize: 12, color: "var(--muted)" }}>Delete needs Admin</span>}>
