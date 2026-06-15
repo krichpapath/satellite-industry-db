@@ -68,7 +68,7 @@ export default function TaxonomyPage() {
   }
 
   return (
-    <RequireRole min="Analyst" fallback={<LockedNote min="Analyst" />}>
+    <RequireRole min="Admin" fallback={<LockedNote min="Admin" />}>
       <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
         <header>
           <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600 }}>Taxonomy / Controlled Vocabularies</h1>

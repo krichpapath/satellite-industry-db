@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Building2, Layers, MapPin, Satellite, Boxes } from "lucide-react";
-import { useDatabase } from "@/lib/store";
+import { ensurePublicEntryRole, useDatabase } from "@/lib/store";
 import { Card, Grid, SectionTitle, Badge, EmptyState } from "@/components/ui";
 import { ThailandMap } from "@/components/thailand-map";
 import { COMPONENT_SYSTEMS } from "@/lib/component-taxonomy";
@@ -67,6 +67,10 @@ function StatTile({
 export default function DashboardPage() {
   const db = useDatabase();
   const [provFilter, setProvFilter] = useState<string | null>(null);
+
+  useEffect(() => {
+    ensurePublicEntryRole();
+  }, []);
 
   const provinceCounts: Record<string, number> = {};
   for (const company of db.firms) provinceCounts[company.province] = (provinceCounts[company.province] ?? 0) + 1;
@@ -160,7 +164,7 @@ export default function DashboardPage() {
                   {db.firms
                     .filter((company) => company.province === provFilter)
                     .map((company) => (
-                      <Link key={company.firm_id} href={`/firms/${company.firm_id}`} style={{ color: "var(--primary)", fontSize: 13 }}>
+                      <Link key={company.firm_id} href={`/companies/${company.firm_id}`} style={{ color: "var(--primary)", fontSize: 13 }}>
                         {company.firm_id}: {company.firm_name}
                       </Link>
                     ))}
@@ -185,7 +189,7 @@ export default function DashboardPage() {
                 return (
                   <Link
                     key={component.product_id}
-                    href={`/firms/${component.firm_id}`}
+                    href={`/companies/${component.firm_id}`}
                     style={{
                       border: "1px solid var(--line)",
                       borderRadius: 10,

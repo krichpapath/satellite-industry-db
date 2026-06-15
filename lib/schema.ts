@@ -197,3 +197,14 @@ export function roleAtLeast(current: Role, needed: Role): boolean {
   const rank: Record<Role, number> = { Public: 0, Analyst: 1, Admin: 2 };
   return rank[current] >= rank[needed];
 }
+
+export function rolePermissions(role: Role) {
+  return {
+    canCreateCompany: role === "Analyst" || role === "Admin",
+    canAddComponent: role === "Analyst" || role === "Admin",
+    canEdit: role === "Admin",
+    canDelete: role === "Admin",
+    canExport: role === "Admin",
+    canAdmin: role === "Admin"
+  };
+}

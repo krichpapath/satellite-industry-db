@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { useDatabase } from "@/lib/store";
+import { useDatabase, useRole } from "@/lib/store";
+import { rolePermissions } from "@/lib/schema";
 import {
   Card,
   Input,
@@ -13,6 +14,7 @@ import {
 
 export default function FirmsPage() {
   const db = useDatabase();
+  const permissions = rolePermissions(useRole());
   const [q, setQ] = useState("");
 
   const rows = useMemo(() => {
@@ -31,9 +33,11 @@ export default function FirmsPage() {
             Companies registered in the satellite industry database.
           </div>
         </div>
-        <Link href="/firms/new" className="page-header-action">
-          <Button>Add company</Button>
-        </Link>
+        {permissions.canCreateCompany && (
+          <Link href="/companies/new" className="page-header-action">
+            <Button>Add company</Button>
+          </Link>
+        )}
       </header>
 
       <Card>
@@ -48,7 +52,7 @@ export default function FirmsPage() {
               key: "name",
               header: "Company",
               render: (company) => (
-                <Link href={`/firms/${company.firm_id}`} style={{ color: "var(--primary)", fontWeight: 500 }}>
+                <Link href={`/companies/${company.firm_id}`} style={{ color: "var(--primary)", fontWeight: 500 }}>
                   {company.firm_name}
                 </Link>
               )
@@ -80,16 +84,18 @@ export default function FirmsPage() {
               header: "",
               render: (company) => (
                 <span style={{ display: "inline-flex", gap: 6 }}>
-                  <Link href={`/firms/${company.firm_id}`}>
+                  <Link href={`/companies/${company.firm_id}`}>
                     <Button variant="secondary" style={{ padding: "5px 10px", fontSize: 12 }}>
                       View
                     </Button>
                   </Link>
-                  <Link href={`/firms/${company.firm_id}/edit`}>
-                    <Button variant="ghost" style={{ padding: "5px 10px", fontSize: 12 }}>
-                      Edit
-                    </Button>
-                  </Link>
+                  {permissions.canEdit && (
+                    <Link href={`/companies/${company.firm_id}/edit`}>
+                      <Button variant="ghost" style={{ padding: "5px 10px", fontSize: 12 }}>
+                        Edit
+                      </Button>
+                    </Link>
+                  )}
                 </span>
               )
             }

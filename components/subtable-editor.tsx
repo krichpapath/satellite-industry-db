@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
-import { commit, nextId, loadDb } from "@/lib/store";
+import { commit, nextId, loadDb, useRole } from "@/lib/store";
 import {
   Button,
   Field,
@@ -10,11 +10,11 @@ import {
   Select,
   Table,
   Badge,
-  RequireRole,
   LockedNote,
   Grid
 } from "./ui";
 import type { Database } from "@/lib/schema";
+import { rolePermissions } from "@/lib/schema";
 import {
   COMPONENT_SYSTEMS,
   componentsForModule,
@@ -53,6 +53,7 @@ export function SubTableEditor<T>({
   display: { key: string; header: string; render: (row: T) => React.ReactNode }[];
   emptyLabel?: string;
 }) {
+  const permissions = rolePermissions(useRole());
   const [editing, setEditing] = useState<T | null>(null);
   const [creating, setCreating] = useState(false);
 
@@ -171,11 +172,13 @@ export function SubTableEditor<T>({
           <strong style={{ fontSize: 14 }}>{title}</strong>
           {hint && <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>{hint}</div>}
         </div>
-        <RequireRole min="Analyst" fallback={<Badge>Read-only</Badge>}>
+        {permissions.canEdit ? (
           <Button className="subtable-editor__add" variant="secondary" onClick={() => setCreating(true)} style={{ padding: "4px 10px", fontSize: 12 }}>
             Add {title}
           </Button>
-        </RequireRole>
+        ) : (
+          <Badge>Read-only</Badge>
+        )}
       </div>
 
       <Table
@@ -187,32 +190,34 @@ export function SubTableEditor<T>({
             key: "_actions",
             header: "",
             render: (row: T) => (
-              <RequireRole min="Analyst" fallback={<span style={{ color: "var(--muted)", fontSize: 12 }}>—</span>}>
+              permissions.canEdit || permissions.canDelete ? (
                 <span style={{ display: "inline-flex", gap: 6 }}>
-                  <Button
-                    variant="ghost"
-                    onClick={() => setEditing(row)}
-                    style={{ padding: "3px 8px", fontSize: 12 }}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={() => onDelete(row)}
-                    style={{ padding: "3px 8px", fontSize: 12, color: "var(--danger)" }}
-                  >
-                    Delete
-                  </Button>
+                  {permissions.canEdit && (
+                    <Button
+                      variant="ghost"
+                      onClick={() => setEditing(row)}
+                      style={{ padding: "3px 8px", fontSize: 12 }}
+                    >
+                      Edit
+                    </Button>
+                  )}
+                  {permissions.canDelete && (
+                    <Button
+                      variant="ghost"
+                      onClick={() => onDelete(row)}
+                      style={{ padding: "3px 8px", fontSize: 12, color: "var(--danger)" }}
+                    >
+                      Delete
+                    </Button>
+                  )}
                 </span>
-              </RequireRole>
+              ) : (
+                <span style={{ color: "var(--muted)", fontSize: 12 }}>-</span>
+              )
             )
           }
         ]}
       />
-
-      <RequireRole min="Analyst">
-        <div />
-      </RequireRole>
 
       {creating && (
         <RowModal
@@ -295,7 +300,7 @@ function RowModal({
             )}
             {f.type === "enum" && (
               <Select value={String(form[f.name] ?? "")} onChange={(e) => update(f.name, e.target.value)}>
-                <option value="">—</option>
+                <option value="">â€”</option>
                 {f.options.map((o) => (
                   <option key={o} value={o}>
                     {o}
@@ -378,17 +383,9 @@ function ComponentPathFields({
 }
 
 export function SubTableLockedFooter() {
-  return (
-    <RequireRole min="Analyst">
-      <></>
-    </RequireRole>
-  );
+  return null;
 }
 
 export function SubTableNotice() {
-  return (
-    <RequireRole min="Analyst" fallback={<LockedNote min="Analyst" />}>
-      <></>
-    </RequireRole>
-  );
+  return <LockedNote min="Admin" />;
 }

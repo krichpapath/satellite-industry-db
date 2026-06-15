@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import { useRole } from "@/lib/store";
@@ -436,7 +436,7 @@ export function LockedNote({ min }: { min: Role }) {
         border: "1px dashed var(--warn)"
       }}
     >
-      Locked — requires <strong>{min}</strong> role. Change role in the sidebar.
+      Locked: requires <strong>{min}</strong> role. Use the correct entry link.
     </div>
   );
 }
@@ -486,7 +486,7 @@ export function Heatmap({
                 return (
                   <td
                     key={c}
-                    title={cell.tooltip ?? `${r} × ${c}: ${cell.value}`}
+                    title={cell.tooltip ?? `${r} Ã— ${c}: ${cell.value}`}
                     onClick={onCellClick ? () => onCellClick(r, c, cell.value) : undefined}
                     style={{
                       width: 90,
@@ -501,7 +501,7 @@ export function Heatmap({
                       verticalAlign: "middle"
                     }}
                   >
-                    {cell.value === 0 ? "—" : cell.value.toFixed(0)}
+                    {cell.value === 0 ? "â€”" : cell.value.toFixed(0)}
                   </td>
                 );
               })}

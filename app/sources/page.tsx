@@ -59,7 +59,7 @@ export default function SourcesPage() {
   }
 
   return (
-    <RequireRole min="Analyst" fallback={<LockedNote min="Analyst" />}>
+    <RequireRole min="Admin" fallback={<LockedNote min="Admin" />}>
       <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
         <header className="page-header-actions" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
           <div>

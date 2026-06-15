@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useDatabase } from "@/lib/store";
-import { Card, SectionTitle, Heatmap, Grid, Badge, Stat, Button } from "@/components/ui";
+import { Card, SectionTitle, Heatmap, Grid, Badge, Stat, Button, RequireRole, LockedNote } from "@/components/ui";
 import { COMPONENT_SYSTEMS, modulesForSystem } from "@/lib/component-taxonomy";
 
 export default function GapAnalysisPage() {
@@ -36,7 +36,8 @@ export default function GapAnalysisPage() {
     : [];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+    <RequireRole min="Admin" fallback={<LockedNote min="Admin" />}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <header>
         <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600 }}>Component Coverage Analysis</h1>
         <div style={{ color: "var(--muted)", marginTop: 6, fontSize: 14 }}>
@@ -80,7 +81,7 @@ export default function GapAnalysisPage() {
                 Clear drilldown
               </Button>
               {drilldownRows.map((company) => (
-                <Link key={company.firm_id} href={`/firms/${company.firm_id}`} style={{ color: "var(--primary)", fontSize: 13 }}>
+                <Link key={company.firm_id} href={`/companies/${company.firm_id}`} style={{ color: "var(--primary)", fontSize: 13 }}>
                   {company.firm_id}: {company.firm_name}
                 </Link>
               ))}
@@ -88,6 +89,7 @@ export default function GapAnalysisPage() {
           )}
         </Card>
       </Grid>
-    </div>
+      </div>
+    </RequireRole>
   );
 }

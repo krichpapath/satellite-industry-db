@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useDatabase } from "@/lib/store";
-import { Card, SectionTitle, Grid, Badge, Button, EmptyState } from "@/components/ui";
+import { Card, SectionTitle, Grid, Badge, Button, EmptyState, RequireRole, LockedNote } from "@/components/ui";
 import { COMPONENT_SYSTEMS } from "@/lib/component-taxonomy";
 
 export default function ValueChainPage() {
@@ -20,7 +20,8 @@ export default function ValueChainPage() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+    <RequireRole min="Admin" fallback={<LockedNote min="Admin" />}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <header>
         <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600 }}>System Coverage</h1>
         <div style={{ color: "var(--muted)", marginTop: 6, fontSize: 14 }}>
@@ -61,7 +62,7 @@ export default function ValueChainPage() {
                     return (
                       <Link
                         key={company.firm_id}
-                        href={`/firms/${company.firm_id}`}
+                        href={`/companies/${company.firm_id}`}
                         style={{
                           display: "block",
                           padding: 10,
@@ -84,6 +85,7 @@ export default function ValueChainPage() {
           );
         })}
       </Grid>
-    </div>
+      </div>
+    </RequireRole>
   );
 }

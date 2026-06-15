@@ -2,8 +2,8 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
-import { Cpu, Download, FileSpreadsheet, House, Leaf, Network, Package, Users } from "lucide-react";
-import { useDatabase } from "@/lib/store";
+import { Download, FileSpreadsheet, House, Package } from "lucide-react";
+import { useDatabase, useRole } from "@/lib/store";
 import {
   Card,
   SectionTitle,
@@ -29,8 +29,10 @@ import type {
   SustainabilityESG,
   FirmSizeFinance
 } from "@/lib/schema";
+import { rolePermissions } from "@/lib/schema";
 
 type TabKey = "overview" | "products" | "tech" | "workforce" | "supply" | "esg";
+type VisibleTabKey = Extract<TabKey, "overview" | "products">;
 type ExportCell = string | number | boolean | null | undefined;
 type ExportColumn<T> = {
   label: string;
@@ -217,7 +219,10 @@ function FirmDatasetExportButton<T>({
   columns: ExportColumn<T>[];
   buttonLabel: string;
 }) {
+  const permissions = rolePermissions(useRole());
   const [open, setOpen] = useState(false);
+  if (!permissions.canExport) return null;
+
   return (
     <>
       <Button
@@ -391,15 +396,16 @@ function FirmDatasetExportModal<T>({
 export default function FirmProfilePage({ params }: { params: Promise<{ firmId: string }> }) {
   const { firmId } = use(params);
   const db = useDatabase();
+  const permissions = rolePermissions(useRole());
   const firm = db.firms.find((f) => f.firm_id === firmId);
-  const [tab, setTab] = useState<TabKey>("overview");
+  const [tab, setTab] = useState<VisibleTabKey>("overview");
 
   if (!firm) {
     return (
       <Card>
         <EmptyState message="Company not found." />
         <div style={{ textAlign: "center", marginTop: 12 }}>
-          <Link href="/firms">
+          <Link href="/companies">
             <Button variant="secondary">Back to companies</Button>
           </Link>
         </div>
@@ -419,11 +425,7 @@ export default function FirmProfilePage({ params }: { params: Promise<{ firmId: 
   const source = db.sources.find((s) => s.source_id === firm.source_id);
   const detailTabs = [
     { key: "overview", label: "Overview", icon: House },
-    { key: "products", label: `Components (${products.length})`, hint: "Satellite component records", icon: Package },
-    ...(tech.length || facilities.length ? [{ key: "tech", label: `Tech & Infrastructure (${tech.length + facilities.length})`, icon: Cpu }] : []),
-    ...(hrRows.length ? [{ key: "workforce", label: `Workforce (${hrRows.length})`, icon: Users }] : []),
-    ...(outLinks.length + inLinks.length ? [{ key: "supply", label: `Supply Chain (${outLinks.length + inLinks.length})`, icon: Network }] : []),
-    ...(esg.length ? [{ key: "esg", label: `ESG (${esg.length})`, icon: Leaf }] : [])
+    { key: "products", label: `Components (${products.length})`, hint: "Satellite component records", icon: Package }
   ];
 
   function firmName(id: string) {
@@ -439,7 +441,7 @@ export default function FirmProfilePage({ params }: { params: Promise<{ firmId: 
           <nav aria-label="Breadcrumb" className="breadcrumb">
             <ol>
               <li>
-                <Link href="/firms">Companies</Link>
+                <Link href="/companies">Companies</Link>
               </li>
               <li aria-hidden="true">/</li>
               <li aria-current="page">{firm.firm_name}</li>
@@ -458,16 +460,18 @@ export default function FirmProfilePage({ params }: { params: Promise<{ firmId: 
             </div>
           )}
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <Link href={`/firms/${firmId}/edit`}>
-            <Button variant="secondary">Edit company</Button>
-          </Link>
-        </div>
+        {permissions.canEdit && (
+          <div style={{ display: "flex", gap: 8 }}>
+            <Link href={`/companies/${firmId}/edit`}>
+              <Button variant="secondary">Edit company</Button>
+            </Link>
+          </div>
+        )}
       </header>
 
       <Tabs
         active={tab}
-        onChange={(k) => setTab(k as TabKey)}
+        onChange={(k) => setTab(k as VisibleTabKey)}
         tabs={detailTabs}
       />
 
@@ -484,30 +488,6 @@ export default function FirmProfilePage({ params }: { params: Promise<{ firmId: 
         <ProductsTab firm={firm} products={products} firmId={firmId} db={db} />
       )}
 
-      {tab === "tech" && (
-        <TechTab firm={firm} tech={tech} facilities={facilities} firmId={firmId} db={db} />
-      )}
-
-      {tab === "workforce" && (
-        <WorkforceTab firm={firm} hr={hrRows} firmId={firmId} />
-      )}
-
-      {tab === "supply" && (
-        <SupplyTab
-          firm={firm}
-          outLinks={outLinks}
-          inLinks={inLinks}
-          collabs={collabs}
-          firmId={firmId}
-          firmOptions={firmOptions}
-          firmName={firmName}
-          db={db}
-        />
-      )}
-
-      {tab === "esg" && (
-        <ESGTab firm={firm} esg={esg} firmId={firmId} />
-      )}
     </div>
   );
 }
@@ -574,7 +554,7 @@ function ProductsTab({
             flexWrap: "wrap"
           }}
         >
-          <SectionTitle hint={`${products.length} component record(s). Edit via row actions with Analyst role or higher.`}>
+          <SectionTitle hint={`${products.length} component record(s). Analysts can add records; Admins can edit or delete.`}>
             Component Records
           </SectionTitle>
           <FirmDatasetExportButton
@@ -790,7 +770,7 @@ function SupplyTab({
               key: "partner",
               header: "Partner",
               render: (l) => (
-                <Link href={`/firms/${l.partner_firm_id}`} style={{ color: "var(--primary)" }}>
+                <Link href={`/companies/${l.partner_firm_id}`} style={{ color: "var(--primary)" }}>
                   {firmName(l.partner_firm_id)}
                 </Link>
               )
@@ -808,7 +788,7 @@ function SupplyTab({
             {inLinks.map((l) => (
               <div key={l.linkage_id} style={{ fontSize: 13, padding: "4px 0" }}>
                 <Badge>{l.linkage_type}</Badge>{" "}
-                From <Link href={`/firms/${l.firm_id}`} style={{ color: "var(--primary)" }}>{firmName(l.firm_id)}</Link>{" "}
+                From <Link href={`/companies/${l.firm_id}`} style={{ color: "var(--primary)" }}>{firmName(l.firm_id)}</Link>{" "}
                 - dep {l.dependency_level}/5
               </div>
             ))}

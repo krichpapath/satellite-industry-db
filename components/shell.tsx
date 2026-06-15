@@ -4,8 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ensureSeeded, setRole, syncDatasetFromApi, useRole } from "@/lib/store";
-import { roleAtLeast, ROLES, type Role } from "@/lib/schema";
+import { ensurePublicEntryRole, ensureSeeded, syncDatasetFromApi, useRole } from "@/lib/store";
+import { roleAtLeast, type Role } from "@/lib/schema";
 import {
   LayoutDashboard,
   Search,
@@ -28,7 +28,7 @@ type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; min:
 const NAV: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard, min: "Public" },
   { href: "/search", label: "Search", icon: Search, min: "Public" },
-  { href: "/firms", label: "Companies", icon: Building2, min: "Public" },
+  { href: "/companies", label: "Companies", icon: Building2, min: "Public" },
   { href: "/value-chain", label: "System Coverage", icon: GitBranch, min: "Admin" },
   { href: "/network", label: "Ecosystem", icon: Network, min: "Admin" },
   { href: "/gap-analysis", label: "Gap Analysis", icon: Target, min: "Admin" },
@@ -40,7 +40,7 @@ const NAV: NavItem[] = [
 
 const roleDesc: Record<Role, string> = {
   Public: "Read-only. Cannot edit any record.",
-  Analyst: "Can edit companies and component records.",
+  Analyst: "Can add companies and components. Cannot edit, delete, or export.",
   Admin: "Full access: audit, import/export, wipe."
 };
 
@@ -57,10 +57,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const visibleNav = NAV.filter((item) => roleAtLeast(role, item.min));
-  const bottomNav = visibleNav.filter((item) => ["/", "/search", "/firms"].includes(item.href));
+  const bottomNav = visibleNav.filter((item) => ["/", "/search", "/companies"].includes(item.href));
 
   useEffect(() => {
     ensureSeeded();
+    ensurePublicEntryRole();
     void syncDatasetFromApi();
   }, []);
 
@@ -69,36 +70,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [pathname]);
 
   function isActive(href: string) {
+    if (href === "/companies") return pathname?.startsWith("/companies") || pathname?.startsWith("/firms");
     return href === "/" ? pathname === "/" : pathname?.startsWith(href);
-  }
-
-  function rolePicker(id: string, compact = false) {
-    return (
-      <select
-        id={id}
-        aria-label="Active role"
-        value={role}
-        onChange={(e) => setRole(e.target.value as Role)}
-        style={{
-          width: compact ? 118 : "100%",
-          minHeight: 44,
-          padding: "7px 10px",
-          border: `1px solid ${roleColor[role]}`,
-          borderRadius: 8,
-          background: "var(--surface)",
-          color: "var(--ink)",
-          fontSize: compact ? 13 : 14,
-          fontWeight: 500,
-          cursor: "pointer"
-        }}
-      >
-        {ROLES.map((r) => (
-          <option key={r} value={r}>
-            {r}
-          </option>
-        ))}
-      </select>
-    );
   }
 
   return (
@@ -122,7 +95,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <span className="app-shell__brand-mark"><Satellite size={18} /></span>
           <span>SatDB</span>
         </Link>
-        {rolePicker("mobile-role", true)}
+        <span className="app-shell__role-pill" style={{ borderColor: roleColor[role], color: roleColor[role] }}>
+          {role}
+        </span>
       </header>
 
       <button
@@ -200,7 +175,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             />
             Active role
           </div>
-          {rolePicker("sidebar-role")}
+          <div className="app-shell__role-card" style={{ borderColor: roleColor[role] }}>
+            {role}
+          </div>
           <AnimatePresence mode="wait">
             <motion.div
               key={role}

@@ -171,7 +171,7 @@ export default function SearchPage() {
               key: "name",
               header: "Company",
               render: (company) => (
-                <Link href={`/firms/${company.firm_id}`} style={{ color: "var(--primary)", fontWeight: 500 }}>
+                <Link href={`/companies/${company.firm_id}`} style={{ color: "var(--primary)", fontWeight: 500 }}>
                   {company.firm_name}
                 </Link>
               )

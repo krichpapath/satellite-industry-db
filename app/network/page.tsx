@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useDatabase } from "@/lib/store";
-import { Card, SectionTitle, Button, Badge, Grid } from "@/components/ui";
+import { Card, SectionTitle, Button, Badge, Grid, RequireRole, LockedNote } from "@/components/ui";
 import type { LinkageType } from "@/lib/schema";
 
 export default function NetworkPage() {
@@ -51,7 +51,8 @@ export default function NetworkPage() {
   const selectedIn = selected ? db.linkages.filter((l) => l.partner_firm_id === selected) : [];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+    <RequireRole min="Admin" fallback={<LockedNote min="Admin" />}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <header>
         <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600 }}>Ecosystem Network</h1>
         <div style={{ color: "var(--muted)", marginTop: 6, fontSize: 14 }}>
@@ -166,7 +167,7 @@ export default function NetworkPage() {
               </div>
               <Button
                 variant="secondary"
-                onClick={() => router.push(`/firms/${selectedFirm.firm_id}`)}
+                onClick={() => router.push(`/companies/${selectedFirm.firm_id}`)}
               >
                 Open full profile →
               </Button>
@@ -196,7 +197,8 @@ export default function NetworkPage() {
           )}
         </Card>
       </Grid>
-    </div>
+      </div>
+    </RequireRole>
   );
 }
 

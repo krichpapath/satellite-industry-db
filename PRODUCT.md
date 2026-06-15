@@ -28,6 +28,15 @@ Avoid decorative dashboards, generic SaaS gradients, unclear taxonomy forms, cra
 - Preserve standard controls, keyboard access, and visible state feedback.
 - Favor restrained product UI over brand-heavy presentation.
 
+## Role & Routing Model
+
+- Keep one canonical company catalog and record route family: `/companies`, `/companies/new`, `/companies/[id]`, and `/companies/[id]/edit`.
+- Use role-specific routes only for genuinely different workflows, such as analyst intake and admin tools.
+- Do not duplicate the same company CRUD screens under separate role prefixes. Role-prefixed clones create drift and are not security.
+- Public, Analyst, and Admin views should share the same resource pages where practical, with visible actions controlled by permissions.
+- Future account login should enforce permissions through auth and route guards, not by trusting URL names.
+- Admin-specific management surfaces belong under `/admin`; analyst-specific intake surfaces may live under `/analysis`.
+
 ## Accessibility & Inclusion
 
 Use visible labels, descriptive button text, keyboard-operable forms, clear disabled states, and layouts that remain usable on desktop and mobile. Motion must not gate content visibility.

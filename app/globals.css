@@ -281,6 +281,28 @@ a {
   font-weight: 700;
 }
 
+.app-shell__role-pill,
+.app-shell__role-card {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0 11px;
+  background: var(--surface);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.app-shell__role-card {
+  width: 100%;
+  min-height: 44px;
+  border-radius: 8px;
+  justify-content: flex-start;
+  color: var(--ink);
+}
+
 .app-shell__nav a {
   min-height: 44px;
 }
@@ -865,6 +887,120 @@ a {
   min-width: 14px;
   color: var(--primary);
   font-size: 13px;
+}
+
+.component-system-pill,
+.component-system-mark {
+  --system-bg: var(--surface-muted);
+  --system-fg: var(--ink-soft);
+  --system-border: var(--line);
+}
+
+.component-system-pill {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  gap: 7px;
+  padding: 4px 10px 4px 6px;
+  border: 1px solid var(--system-border);
+  border-radius: 999px;
+  background: var(--system-bg);
+  color: var(--system-fg);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.component-system-pill__icon,
+.component-system-mark {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--system-fg) 10%, #fff);
+  color: var(--system-fg);
+}
+
+.component-system-pill__icon {
+  width: 22px;
+  height: 22px;
+}
+
+.component-system-mark {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--system-border);
+  background: var(--system-bg);
+}
+
+.component-system-pill[data-system-kind="payload"],
+.component-system-mark[data-system-kind="payload"] {
+  --system-bg: #eef5ff;
+  --system-fg: #1d4f91;
+  --system-border: #c9ddf7;
+}
+
+.component-system-pill[data-system-kind="eps"],
+.component-system-mark[data-system-kind="eps"] {
+  --system-bg: #fff7e6;
+  --system-fg: #8a5a00;
+  --system-border: #f3dfb3;
+}
+
+.component-system-pill[data-system-kind="adcs"],
+.component-system-mark[data-system-kind="adcs"] {
+  --system-bg: #eef7f3;
+  --system-fg: #116b52;
+  --system-border: #c8e5da;
+}
+
+.component-system-pill[data-system-kind="cdh"],
+.component-system-mark[data-system-kind="cdh"] {
+  --system-bg: #f2f1ff;
+  --system-fg: #4b43a6;
+  --system-border: #d9d6fb;
+}
+
+.component-system-pill[data-system-kind="ttc"],
+.component-system-mark[data-system-kind="ttc"] {
+  --system-bg: #eef8fb;
+  --system-fg: #12677b;
+  --system-border: #c7e6ee;
+}
+
+.component-system-pill[data-system-kind="stcs"],
+.component-system-mark[data-system-kind="stcs"] {
+  --system-bg: #f4f6f8;
+  --system-fg: #475569;
+  --system-border: #d9e0e8;
+}
+
+.component-system-pill[data-system-kind="propulsion"],
+.component-system-mark[data-system-kind="propulsion"] {
+  --system-bg: #fff1ed;
+  --system-fg: #a43b1f;
+  --system-border: #f2cbc1;
+}
+
+.component-system-pill[data-system-kind="unknown"],
+.component-system-mark[data-system-kind="unknown"] {
+  --system-bg: var(--warn-soft);
+  --system-fg: var(--warn);
+  --system-border: #f3cf9e;
+}
+
+.component-editor-card__system,
+.component-summary-heading {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.component-summary-heading {
+  color: var(--ink);
+  font-weight: 650;
 }
 
 .component-table__product div {

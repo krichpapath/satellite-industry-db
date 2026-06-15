@@ -6,22 +6,30 @@ import { motion } from "framer-motion";
 import {
   ArrowUpDown,
   Bold,
+  CircleHelp,
+  Compass,
+  Cpu,
+  Flame,
   Italic,
+  Layers3,
   List,
   ListOrdered,
   Outdent,
   Indent,
   Pencil,
+  Radio,
   RotateCcw,
   RotateCw,
   Search,
   Trash2,
+  Telescope,
   Underline,
   Info,
-  PackagePlus
+  PackagePlus,
+  Zap
 } from "lucide-react";
 import { commit, loadDb, nextId, useRole } from "@/lib/store";
-import { roleAtLeast, type ProductService } from "@/lib/schema";
+import { rolePermissions, type ProductService } from "@/lib/schema";
 import {
   COMPONENT_SYSTEMS,
   UNIDENTIFIED_VALUE,
@@ -35,6 +43,69 @@ import { Badge, Button, EmptyState, Field, Input, Modal, Select } from "./ui";
 
 type ComponentForm = ProductService;
 type ComponentSortKey = "product_name" | "system" | "module" | "component_name" | "description";
+type SystemKind = "payload" | "eps" | "adcs" | "cdh" | "ttc" | "stcs" | "propulsion" | "unknown";
+
+const SYSTEM_VISUALS: Record<SystemKind, {
+  icon: React.ComponentType<{ size?: number }>;
+  label: string;
+}> = {
+  payload: { icon: Telescope, label: "Payload" },
+  eps: { icon: Zap, label: "Electrical power" },
+  adcs: { icon: Compass, label: "Attitude control" },
+  cdh: { icon: Cpu, label: "Command and data handling" },
+  ttc: { icon: Radio, label: "Telemetry, tracking, and command" },
+  stcs: { icon: Layers3, label: "Structure and thermal control" },
+  propulsion: { icon: Flame, label: "Propulsion" },
+  unknown: { icon: CircleHelp, label: "Unidentified system" }
+};
+
+function systemKind(system: string): SystemKind {
+  const normalized = normalizeSystem(system);
+  if (normalized === UNIDENTIFIED_VALUE) return "unknown";
+  if (normalized.includes("Payload")) return "payload";
+  if (normalized.includes("Electrical Power") || normalized.includes("EPS")) return "eps";
+  if (normalized.includes("ADCS")) return "adcs";
+  if (normalized.includes("Command & Data") || normalized.includes("C&DH")) return "cdh";
+  if (normalized.includes("TT&C")) return "ttc";
+  if (normalized.includes("Structure & Thermal") || normalized.includes("STCS")) return "stcs";
+  if (normalized.includes("Propulsion")) return "propulsion";
+  return "unknown";
+}
+
+function SystemPill({
+  system,
+  compact = false
+}: {
+  system: string;
+  compact?: boolean;
+}) {
+  const normalized = normalizeSystem(system);
+  const kind = systemKind(normalized);
+  const Icon = SYSTEM_VISUALS[kind].icon;
+
+  return (
+    <span
+      className="component-system-pill"
+      data-system-kind={kind}
+      title={SYSTEM_VISUALS[kind].label}
+    >
+      <span className="component-system-pill__icon" aria-hidden="true">
+        <Icon size={compact ? 13 : 14} />
+      </span>
+      <span>{normalized}</span>
+    </span>
+  );
+}
+
+function SystemIconMark({ system }: { system: string }) {
+  const kind = systemKind(system);
+  const Icon = SYSTEM_VISUALS[kind].icon;
+  return (
+    <span className="component-system-mark" data-system-kind={kind} aria-hidden="true">
+      <Icon size={18} />
+    </span>
+  );
+}
 
 function blankComponent(firmId: string): ComponentForm {
   const system = COMPONENT_SYSTEMS[0] ?? UNIDENTIFIED_VALUE;
@@ -331,7 +402,10 @@ function ComponentRecordEditor({
           </div>
           <div className="component-editor-card__summary">
             <span>Selected path</span>
-            <strong>{system || "No system selected"}</strong>
+            <strong className="component-editor-card__system">
+              <SystemIconMark system={system || UNIDENTIFIED_VALUE} />
+              {system || "No system selected"}
+            </strong>
             <small>{form.module || "No module selected"}</small>
             <small>{form.component_name || "No component selected"}</small>
           </div>
@@ -417,7 +491,7 @@ export function ComponentRecordsPanel({
   firmId: string;
 }) {
   const role = useRole();
-  const canEdit = roleAtLeast(role, "Analyst");
+  const permissions = rolePermissions(role);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<ProductService | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -534,7 +608,7 @@ export function ComponentRecordsPanel({
                 <option value="description:asc">Description A-Z</option>
               </Select>
             </label>
-            {canEdit ? (
+            {permissions.canAddComponent ? (
               <Button variant="secondary" onClick={() => setCreating(true)} style={{ minHeight: 40 }}>
                 Add component
               </Button>
@@ -545,7 +619,7 @@ export function ComponentRecordsPanel({
         </div>
 
         {rows.length === 0 ? (
-        <EmptyState message="Add a component with a product name, taxonomy path, and description." />
+        <EmptyState message={permissions.canAddComponent ? "Add a component with a product name, taxonomy path, and description." : "No component records yet."} />
         ) : visibleRows.length === 0 ? (
           <EmptyState message="No component records match your search." />
         ) : (
@@ -569,7 +643,7 @@ export function ComponentRecordsPanel({
                   <th>
                     <SortHead label="Description" column="description" active={sortColumn} direction={sortDirection} onSort={sortBy} />
                   </th>
-                  <th>Actions</th>
+                  {(permissions.canEdit || permissions.canDelete) && <th>Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -580,9 +654,7 @@ export function ComponentRecordsPanel({
                       <code>{row.product_id}</code>
                     </td>
                     <td>
-                      <Badge tone={normalizeSystem(row.system) === UNIDENTIFIED_VALUE ? "warn" : "accent"}>
-                        {normalizeSystem(row.system)}
-                      </Badge>
+                      <SystemPill system={row.system} />
                     </td>
                     <td>
                       <span className="component-table__wrap">{row.module}</span>
@@ -593,30 +665,34 @@ export function ComponentRecordsPanel({
                     <td className="component-table__description">
                       <RichDescriptionPreview html={row.description} />
                     </td>
-                    <td>
-                      <div className="component-table__actions">
-                        <Button
-                          variant="ghost"
-                          onClick={() => setEditing(row)}
-                          disabled={!canEdit}
-                          ariaLabel={`Edit ${row.product_name || row.component_name}`}
-                          title="Edit component"
-                          style={{ padding: 8 }}
-                        >
-                          <Pencil size={16} />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          onClick={() => remove(row)}
-                          disabled={!canEdit}
-                          ariaLabel={`Delete ${row.product_name || row.component_name}`}
-                          title="Delete component"
-                          style={{ padding: 8, color: "var(--danger)" }}
-                        >
-                          <Trash2 size={16} />
-                        </Button>
-                      </div>
-                    </td>
+                    {(permissions.canEdit || permissions.canDelete) && (
+                      <td>
+                        <div className="component-table__actions">
+                          {permissions.canEdit && (
+                            <Button
+                              variant="ghost"
+                              onClick={() => setEditing(row)}
+                              ariaLabel={`Edit ${row.product_name || row.component_name}`}
+                              title="Edit component"
+                              style={{ padding: 8 }}
+                            >
+                              <Pencil size={16} />
+                            </Button>
+                          )}
+                          {permissions.canDelete && (
+                            <Button
+                              variant="ghost"
+                              onClick={() => remove(row)}
+                              ariaLabel={`Delete ${row.product_name || row.component_name}`}
+                              title="Delete component"
+                              style={{ padding: 8, color: "var(--danger)" }}
+                            >
+                              <Trash2 size={16} />
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -628,9 +704,7 @@ export function ComponentRecordsPanel({
                 <div className="component-record-card__title">{row.product_name || row.component_name}</div>
                 <div className="component-record-card__meta">
                   <code>{row.product_id}</code>
-                  <Badge tone={normalizeSystem(row.system) === UNIDENTIFIED_VALUE ? "warn" : "accent"}>
-                    {normalizeSystem(row.system)}
-                  </Badge>
+                  <SystemPill system={row.system} compact />
                 </div>
                 <div className="component-record-card__path">
                   <Badge>{row.module}</Badge>
@@ -639,29 +713,33 @@ export function ComponentRecordsPanel({
                 <div className="component-record-card__description">
                   <RichDescriptionPreview html={row.description} />
                 </div>
-                <div className="component-record-card__actions">
-                  <Button
-                    variant="secondary"
-                    onClick={() => setEditing(row)}
-                    disabled={!canEdit}
-                    ariaLabel={`Edit ${row.product_name || row.component_name}`}
-                    title="Edit component"
-                  >
-                    <Pencil size={16} />
-                    Edit
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={() => remove(row)}
-                    disabled={!canEdit}
-                    ariaLabel={`Delete ${row.product_name || row.component_name}`}
-                    title="Delete component"
-                    style={{ color: "var(--danger)" }}
-                  >
-                    <Trash2 size={16} />
-                    Delete
-                  </Button>
-                </div>
+                {(permissions.canEdit || permissions.canDelete) && (
+                  <div className="component-record-card__actions">
+                    {permissions.canEdit && (
+                      <Button
+                        variant="secondary"
+                        onClick={() => setEditing(row)}
+                        ariaLabel={`Edit ${row.product_name || row.component_name}`}
+                        title="Edit component"
+                      >
+                        <Pencil size={16} />
+                        Edit
+                      </Button>
+                    )}
+                    {permissions.canDelete && (
+                      <Button
+                        variant="ghost"
+                        onClick={() => remove(row)}
+                        ariaLabel={`Delete ${row.product_name || row.component_name}`}
+                        title="Delete component"
+                        style={{ color: "var(--danger)" }}
+                      >
+                        <Trash2 size={16} />
+                        Delete
+                      </Button>
+                    )}
+                  </div>
+                )}
               </article>
             ))}
             </div>
@@ -702,7 +780,10 @@ export function ComponentRecordsPanel({
                     flexWrap: "wrap"
                   }}
                 >
-                  <div style={{ fontWeight: 650 }}>{system}</div>
+                  <div className="component-summary-heading">
+                    <SystemIconMark system={system} />
+                    <span>{system}</span>
+                  </div>
                   <div style={{ display: "inline-flex", gap: 6, flexWrap: "wrap" }}>
                     <Badge tone={system === UNIDENTIFIED_VALUE ? "warn" : "accent"}>{systemRows.length} component{systemRows.length === 1 ? "" : "s"}</Badge>
                     <Badge>{Object.keys(modules).length} module{Object.keys(modules).length === 1 ? "" : "s"}</Badge>

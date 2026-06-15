@@ -4,14 +4,15 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { loadDb, commit, nextId } from "@/lib/store";
 import type { Firm } from "@/lib/schema";
-import { OWNERSHIP_TYPES } from "@/lib/schema";
+import { OWNERSHIP_TYPES, rolePermissions } from "@/lib/schema";
 import { apiConfigured, createFirm as createFirmApi } from "@/lib/api";
-import { Card, SectionTitle, Field, Input, Select, Button, Grid, RequireRole, LockedNote } from "./ui";
-import { useDatabase } from "@/lib/store";
+import { Card, SectionTitle, Field, Input, Select, Button, Grid, LockedNote } from "./ui";
+import { useDatabase, useRole } from "@/lib/store";
 
 export function FirmForm({ initial }: { initial?: Firm }) {
   const router = useRouter();
   const db = useDatabase();
+  const permissions = rolePermissions(useRole());
   const editing = !!initial;
   const [saving, setSaving] = useState(false);
   const [saveState, setSaveState] = useState("");
@@ -54,7 +55,7 @@ export function FirmForm({ initial }: { initial?: Firm }) {
           );
         }
       );
-      router.push(`/firms/${form.firm_id}`);
+      router.push(`/companies/${form.firm_id}`);
       setSaving(false);
       return;
     }
@@ -92,7 +93,7 @@ export function FirmForm({ initial }: { initial?: Firm }) {
           ];
         }
       );
-      router.push(`/firms/${savedFirm.firm_id}`);
+      router.push(`/companies/${savedFirm.firm_id}`);
     } finally {
       setSaving(false);
     }
@@ -117,11 +118,14 @@ export function FirmForm({ initial }: { initial?: Firm }) {
         d.esg = d.esg.filter((r) => r.firm_id !== form.firm_id);
       }
     );
-    router.push("/firms");
+    router.push("/companies");
   }
 
+  if (editing && !permissions.canEdit) return <LockedNote min="Admin" />;
+  if (!editing && !permissions.canCreateCompany) return <LockedNote min="Analyst" />;
+
   return (
-    <RequireRole min="Analyst" fallback={<LockedNote min="Analyst" />}>
+    <>
       <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: 18 }}>
         <Card>
           <SectionTitle hint="Core company fields used across the database.">
@@ -196,12 +200,10 @@ export function FirmForm({ initial }: { initial?: Firm }) {
 
         <div className="firm-form-actions" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
           <div>
-            {editing && (
-              <RequireRole min="Admin" fallback={<span style={{ fontSize: 12, color: "var(--muted)" }}>Delete needs Admin</span>}>
+            {editing && permissions.canDelete && (
                 <Button variant="danger" onClick={onDelete}>
                   Delete company
                 </Button>
-              </RequireRole>
             )}
           </div>
           <div style={{ display: "flex", gap: 8 }}>
@@ -214,6 +216,6 @@ export function FirmForm({ initial }: { initial?: Firm }) {
           </div>
         </div>
       </form>
-    </RequireRole>
+    </>
   );
 }

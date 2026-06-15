@@ -10,6 +10,7 @@ import { sanitizeRichText } from "./rich-text";
 
 const KEY = "satdb.v3";
 const ROLE_KEY = "satdb.role";
+const ROLE_ENTRY_KEY = "satdb.role-entry";
 const LEGACY_KEYS = ["satdb.v2", "satdb.v1"];
 let apiSyncPromise: Promise<ApiSyncResult> | null = null;
 let apiSavePromise: Promise<void> | null = null;
@@ -305,16 +306,28 @@ export function commit(
 }
 
 export function getRole(): Role {
-  if (typeof window === "undefined") return "Admin";
+  if (typeof window === "undefined") return "Public";
   const v = window.localStorage.getItem(ROLE_KEY);
   if (v === "Public" || v === "Analyst" || v === "Admin") return v;
-  return "Admin";
+  return "Public";
 }
 
 export function setRole(role: Role) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(ROLE_KEY, role);
   window.dispatchEvent(new Event("satdb:role"));
+}
+
+export function setEntryRole(role: Role) {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.setItem(ROLE_ENTRY_KEY, role);
+  setRole(role);
+}
+
+export function ensurePublicEntryRole() {
+  if (typeof window === "undefined") return;
+  if (window.sessionStorage.getItem(ROLE_ENTRY_KEY)) return;
+  setRole("Public");
 }
 
 function subscribeRole(cb: () => void) {
@@ -332,7 +345,7 @@ function getRoleSnapshot(): Role {
 }
 
 function getRoleServerSnapshot(): Role {
-  return "Admin";
+  return "Public";
 }
 
 export function useRole(): Role {
