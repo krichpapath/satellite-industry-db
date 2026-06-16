@@ -162,14 +162,7 @@ function RichDescriptionPreview({ html }: { html?: string }) {
   if (!safe) return <span style={{ color: "var(--muted)" }}>No description</span>;
   return (
     <div
-      className="rich-preview"
-      style={{
-        color: "var(--ink-soft)",
-        fontSize: 13,
-        lineHeight: 1.5,
-        maxHeight: 62,
-        overflow: "hidden"
-      }}
+      className="rich-preview rich-description-preview"
       dangerouslySetInnerHTML={{ __html: safe }}
     />
   );
@@ -221,17 +214,7 @@ function ToolbarButton({
         event.preventDefault();
         onPress();
       }}
-      style={{
-        width: 44,
-        height: 44,
-        border: "1px solid transparent",
-        borderRadius: 8,
-        background: "transparent",
-        color: "var(--ink-soft)",
-        display: "inline-grid",
-        placeItems: "center",
-        cursor: "pointer"
-      }}
+      className="rich-toolbar-button"
     >
       <Icon size={17} />
     </button>
@@ -269,19 +252,10 @@ function RichTextEditor({
   }
 
   return (
-    <div style={{ border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden", background: "var(--surface)" }}>
+    <div className="rich-editor-shell">
       <div
         aria-label="Description formatting toolbar"
-        style={{
-          minHeight: 44,
-          display: "flex",
-          alignItems: "center",
-          gap: 4,
-          flexWrap: "wrap",
-          padding: "6px 8px",
-          borderBottom: "1px solid var(--line)",
-          background: "var(--surface-muted)"
-        }}
+        className="rich-editor-toolbar"
       >
         <Select
           aria-label="Paragraph style"
@@ -313,14 +287,6 @@ function RichTextEditor({
         suppressContentEditableWarning
         onInput={sync}
         onBlur={sync}
-        style={{
-          minHeight: 230,
-          padding: 14,
-          outline: "none",
-          lineHeight: 1.65,
-          color: "var(--ink)",
-          fontSize: 14
-        }}
       />
     </div>
   );
@@ -658,150 +624,150 @@ export function ComponentRecordsPanel({
         </div>
 
         {rows.length === 0 ? (
-        <EmptyState message={permissions.canAddComponent ? "Add a component with a product name, taxonomy path, and description." : "No component records yet."} />
+          <EmptyState message={permissions.canAddComponent ? "Add a component with a product name, taxonomy path, and description." : "No component records yet."} />
         ) : visibleRows.length === 0 ? (
           <EmptyState message="No component records match your search." />
         ) : (
           <>
             <div className="component-table-wrap">
               <table className="component-table">
-              <thead>
-                <tr>
-                  <th>
-                    <SortHead label="Product" column="product_name" active={sortColumn} direction={sortDirection} onSort={sortBy} />
-                  </th>
-                  <th>
-                    <SortHead label="System" column="system" active={sortColumn} direction={sortDirection} onSort={sortBy} />
-                  </th>
-                  <th>
-                    <SortHead label="Module" column="module" active={sortColumn} direction={sortDirection} onSort={sortBy} />
-                  </th>
-                  <th>
-                    <SortHead label="Component" column="component_name" active={sortColumn} direction={sortDirection} onSort={sortBy} />
-                  </th>
-                  <th>
-                    <SortHead label="TRL" column="product_trl" active={sortColumn} direction={sortDirection} onSort={sortBy} />
-                  </th>
-                  <th>Flight heritage</th>
-                  <th>
-                    <SortHead label="Description" column="description" active={sortColumn} direction={sortDirection} onSort={sortBy} />
-                  </th>
-                  {(permissions.canEdit || permissions.canDelete) && <th>Actions</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {visibleRows.map((row) => (
-                  <tr key={row.product_id}>
-                    <td className="component-table__product">
-                      <div>{row.product_name || row.component_name}</div>
-                      <code>{row.product_id}</code>
-                    </td>
-                    <td>
-                      <SystemPill system={row.system} />
-                    </td>
-                    <td>
-                      <span className="component-table__wrap">{row.module}</span>
-                    </td>
-                    <td>
-                      <span className="component-table__wrap">{row.component_name}</span>
-                    </td>
-                    <td>
-                      <Badge tone={row.product_trl === "Unidentified" || row.product_trl === undefined ? "warn" : "accent"}>
-                        TRL {formatProductTrl(row.product_trl)}
-                      </Badge>
-                    </td>
-                    <td>
-                      <span className="component-table__wrap">{row.flight_heritage || "-"}</span>
-                    </td>
-                    <td className="component-table__description">
-                      <RichDescriptionPreview html={row.description} />
-                    </td>
-                    {(permissions.canEdit || permissions.canDelete) && (
-                      <td>
-                        <div className="component-table__actions">
-                          {permissions.canEdit && (
-                            <Button
-                              variant="ghost"
-                              onClick={() => setEditing(row)}
-                              ariaLabel={`Edit ${row.product_name || row.component_name}`}
-                              title="Edit component"
-                              style={{ padding: 8 }}
-                            >
-                              <Pencil size={16} />
-                            </Button>
-                          )}
-                          {permissions.canDelete && (
-                            <Button
-                              variant="ghost"
-                              onClick={() => remove(row)}
-                              ariaLabel={`Delete ${row.product_name || row.component_name}`}
-                              title="Delete component"
-                              style={{ padding: 8, color: "var(--danger)" }}
-                            >
-                              <Trash2 size={16} />
-                            </Button>
-                          )}
-                        </div>
-                      </td>
-                    )}
+                <thead>
+                  <tr>
+                    <th>
+                      <SortHead label="Product" column="product_name" active={sortColumn} direction={sortDirection} onSort={sortBy} />
+                    </th>
+                    <th>
+                      <SortHead label="System" column="system" active={sortColumn} direction={sortDirection} onSort={sortBy} />
+                    </th>
+                    <th>
+                      <SortHead label="Module" column="module" active={sortColumn} direction={sortDirection} onSort={sortBy} />
+                    </th>
+                    <th>
+                      <SortHead label="Component" column="component_name" active={sortColumn} direction={sortDirection} onSort={sortBy} />
+                    </th>
+                    <th>
+                      <SortHead label="TRL" column="product_trl" active={sortColumn} direction={sortDirection} onSort={sortBy} />
+                    </th>
+                    <th>Flight heritage</th>
+                    <th>
+                      <SortHead label="Description" column="description" active={sortColumn} direction={sortDirection} onSort={sortBy} />
+                    </th>
+                    {(permissions.canEdit || permissions.canDelete) && <th>Actions</th>}
                   </tr>
-                ))}
-              </tbody>
+                </thead>
+                <tbody>
+                  {visibleRows.map((row) => (
+                    <tr key={row.product_id}>
+                      <td className="component-table__product">
+                        <div>{row.product_name || row.component_name}</div>
+                        <code>{row.product_id}</code>
+                      </td>
+                      <td>
+                        <SystemPill system={row.system} />
+                      </td>
+                      <td>
+                        <span className="component-table__wrap">{row.module}</span>
+                      </td>
+                      <td>
+                        <span className="component-table__wrap">{row.component_name}</span>
+                      </td>
+                      <td>
+                        <Badge tone={row.product_trl === "Unidentified" || row.product_trl === undefined ? "warn" : "accent"}>
+                          TRL {formatProductTrl(row.product_trl)}
+                        </Badge>
+                      </td>
+                      <td>
+                        <span className="component-table__wrap">{row.flight_heritage || "-"}</span>
+                      </td>
+                      <td className="component-table__description">
+                        <RichDescriptionPreview html={row.description} />
+                      </td>
+                      {(permissions.canEdit || permissions.canDelete) && (
+                        <td>
+                          <div className="component-table__actions">
+                            {permissions.canEdit && (
+                              <Button
+                                variant="ghost"
+                                onClick={() => setEditing(row)}
+                                ariaLabel={`Edit ${row.product_name || row.component_name}`}
+                                title="Edit component"
+                                style={{ padding: 8 }}
+                              >
+                                <Pencil size={16} />
+                              </Button>
+                            )}
+                            {permissions.canDelete && (
+                              <Button
+                                variant="ghost"
+                                onClick={() => remove(row)}
+                                ariaLabel={`Delete ${row.product_name || row.component_name}`}
+                                title="Delete component"
+                                style={{ padding: 8, color: "var(--danger)" }}
+                              >
+                                <Trash2 size={16} />
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
               </table>
             </div>
             <div className="component-record-list" aria-label="Component records">
-            {visibleRows.map((row) => (
-              <article key={row.product_id} className="component-record-card">
-                <div className="component-record-card__title">{row.product_name || row.component_name}</div>
-                <div className="component-record-card__meta">
-                  <code>{row.product_id}</code>
-                  <SystemPill system={row.system} compact />
-                </div>
-                <div className="component-record-card__path">
-                  <Badge>{row.module}</Badge>
-                  <Badge>{row.component_name}</Badge>
-                  <Badge tone={row.product_trl === "Unidentified" || row.product_trl === undefined ? "warn" : "accent"}>
-                    TRL {formatProductTrl(row.product_trl)}
-                  </Badge>
-                </div>
-                {row.flight_heritage && (
-                  <div className="component-record-card__heritage">
-                    <strong>Flight heritage</strong>
-                    <span>{row.flight_heritage}</span>
+              {visibleRows.map((row) => (
+                <article key={row.product_id} className="component-record-card">
+                  <div className="component-record-card__title">{row.product_name || row.component_name}</div>
+                  <div className="component-record-card__meta">
+                    <code>{row.product_id}</code>
+                    <SystemPill system={row.system} compact />
                   </div>
-                )}
-                <div className="component-record-card__description">
-                  <RichDescriptionPreview html={row.description} />
-                </div>
-                {(permissions.canEdit || permissions.canDelete) && (
-                  <div className="component-record-card__actions">
-                    {permissions.canEdit && (
-                      <Button
-                        variant="secondary"
-                        onClick={() => setEditing(row)}
-                        ariaLabel={`Edit ${row.product_name || row.component_name}`}
-                        title="Edit component"
-                      >
-                        <Pencil size={16} />
-                        Edit
-                      </Button>
-                    )}
-                    {permissions.canDelete && (
-                      <Button
-                        variant="ghost"
-                        onClick={() => remove(row)}
-                        ariaLabel={`Delete ${row.product_name || row.component_name}`}
-                        title="Delete component"
-                        style={{ color: "var(--danger)" }}
-                      >
-                        <Trash2 size={16} />
-                        Delete
-                      </Button>
-                    )}
+                  <div className="component-record-card__path">
+                    <Badge>{row.module}</Badge>
+                    <Badge>{row.component_name}</Badge>
+                    <Badge tone={row.product_trl === "Unidentified" || row.product_trl === undefined ? "warn" : "accent"}>
+                      TRL {formatProductTrl(row.product_trl)}
+                    </Badge>
                   </div>
-                )}
-              </article>
-            ))}
+                  {row.flight_heritage && (
+                    <div className="component-record-card__heritage">
+                      <strong>Flight heritage</strong>
+                      <span>{row.flight_heritage}</span>
+                    </div>
+                  )}
+                  <div className="component-record-card__description">
+                    <RichDescriptionPreview html={row.description} />
+                  </div>
+                  {(permissions.canEdit || permissions.canDelete) && (
+                    <div className="component-record-card__actions">
+                      {permissions.canEdit && (
+                        <Button
+                          variant="secondary"
+                          onClick={() => setEditing(row)}
+                          ariaLabel={`Edit ${row.product_name || row.component_name}`}
+                          title="Edit component"
+                        >
+                          <Pencil size={16} />
+                          Edit
+                        </Button>
+                      )}
+                      {permissions.canDelete && (
+                        <Button
+                          variant="ghost"
+                          onClick={() => remove(row)}
+                          ariaLabel={`Delete ${row.product_name || row.component_name}`}
+                          title="Delete component"
+                          style={{ color: "var(--danger)" }}
+                        >
+                          <Trash2 size={16} />
+                          Delete
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </article>
+              ))}
             </div>
           </>
         )}
@@ -825,42 +791,33 @@ export function ComponentRecordsPanel({
       )}
 
       {rows.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div className="component-summary-list">
           {Object.entries(grouped).map(([system, modules]) => {
             const systemRows = Object.values(modules).flat();
             return (
-              <section key={system} style={{ border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: 12,
-                    padding: "12px 14px",
-                    background: "var(--surface-muted)",
-                    flexWrap: "wrap"
-                  }}
-                >
+              <section key={system} className="component-summary-section">
+                <div className="component-summary-section__header">
                   <div className="component-summary-heading">
                     <SystemIconMark system={system} />
                     <span>{system}</span>
                   </div>
-                  <div style={{ display: "inline-flex", gap: 6, flexWrap: "wrap" }}>
+                  <div className="component-summary-section__counts">
                     <Badge tone={system === UNIDENTIFIED_VALUE ? "warn" : "accent"}>{systemRows.length} component{systemRows.length === 1 ? "" : "s"}</Badge>
                     <Badge>{Object.keys(modules).length} module{Object.keys(modules).length === 1 ? "" : "s"}</Badge>
                   </div>
                 </div>
-                <div style={{ display: "flex", flexDirection: "column" }}>
+                <div className="component-summary-section__body">
                   {Object.entries(modules).map(([module, moduleRows]) => (
-                    <div key={module} style={{ padding: 14, borderTop: "1px solid var(--line-soft)" }}>
-                      <div style={{ fontWeight: 600, color: "var(--ink-soft)", marginBottom: 10 }}>{module}</div>
-                      <div style={{ display: "grid", gap: 8 }}>
+                    <div key={module} className="component-summary-module">
+                      <div className="component-summary-module__title">{module}</div>
+                      <div className="component-summary-module__rows">
                         {moduleRows.map((row) => (
-                          <div key={row.product_id} className="component-summary-row" style={{ display: "grid", gridTemplateColumns: "minmax(180px, 0.8fr) minmax(220px, 1fr)", gap: 12 }}>
-                            <div>
-                              <div style={{ fontWeight: 600 }}>{row.product_name || row.component_name}</div>
-                              <div style={{ fontSize: 12, color: "var(--muted)" }}>{row.component_name}</div>
+                          <div key={row.product_id} className="component-summary-row">
+                            <div className="component-summary-row__main">
+                              <div className="component-summary-row__name">{row.product_name || row.component_name}</div>
+                              <div className="component-summary-row__component">{row.component_name}</div>
                             </div>
-                            <div style={{ fontSize: 13, color: "var(--ink-soft)" }}>{richTextToPlainText(row.description).slice(0, 180) || "No description"}</div>
+                            <div className="component-summary-row__description">{richTextToPlainText(row.description).slice(0, 180) || "No description"}</div>
                           </div>
                         ))}
                       </div>

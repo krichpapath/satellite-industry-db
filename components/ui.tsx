@@ -3,12 +3,20 @@
 import React from "react";
 import { useRole } from "@/lib/store";
 import { roleAtLeast, type Role } from "@/lib/schema";
+import { Badge as ShadBadge } from "@/components/ui/badge";
+import { Button as ShadButton } from "@/components/ui/button";
+import { Card as ShadCard } from "@/components/ui/card";
+import { Input as ShadInput } from "@/components/ui/input";
+import { NativeSelect as ShadNativeSelect } from "@/components/ui/native-select";
+import { Textarea as ShadTextarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 export function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <div
-      className={className}
+    <ShadCard
+      className={cn("satdb-card", className)}
       style={{
+        display: "block",
         background: "var(--surface)",
         border: "1px solid var(--line)",
         borderRadius: 14,
@@ -17,7 +25,7 @@ export function Card({ children, className = "" }: { children: React.ReactNode; 
       }}
     >
       {children}
-    </div>
+    </ShadCard>
   );
 }
 
@@ -61,12 +69,19 @@ export function Button({
     ghost: { background: "transparent", color: "var(--ink)", borderColor: "transparent" },
     danger: { background: "var(--danger)", color: "#fff", borderColor: "var(--danger)" }
   };
+  const shadVariant: Record<BtnVariant, React.ComponentProps<typeof ShadButton>["variant"]> = {
+    primary: "default",
+    secondary: "outline",
+    ghost: "ghost",
+    danger: "destructive"
+  };
   return (
-    <button
+    <ShadButton
       type={type}
       title={title}
       aria-label={ariaLabel}
-      className={`satdb-button ${className}`}
+      variant={shadVariant[variant]}
+      className={cn("satdb-button", className)}
       onClick={onClick}
       disabled={disabled}
       style={{
@@ -82,21 +97,21 @@ export function Button({
         fontSize: 14,
         cursor: disabled ? "not-allowed" : "pointer",
         opacity: disabled ? 0.5 : 1,
-        transition: "transform .04s ease",
+        transition: "transform 140ms var(--ease-out-quint), box-shadow 180ms var(--ease-out-quint), border-color 180ms var(--ease-out-quint), background-color 180ms var(--ease-out-quint), color 180ms var(--ease-out-quint)",
         ...style,
         minHeight: 44
       }}
     >
       {children}
-    </button>
+    </ShadButton>
   );
 }
 
 export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <input
+    <ShadInput
       {...props}
-      className={`satdb-input ${props.className ?? ""}`}
+      className={cn("satdb-input", props.className)}
       style={{
         width: "100%",
         minHeight: 44,
@@ -112,11 +127,11 @@ export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
   );
 }
 
-export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
+export function Select({ size: _htmlSize, ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) {
   return (
-    <select
+    <ShadNativeSelect
       {...props}
-      className={`satdb-input ${props.className ?? ""}`}
+      className={cn("satdb-input", props.className)}
       style={{
         width: "100%",
         minHeight: 44,
@@ -134,9 +149,9 @@ export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
 
 export function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return (
-    <textarea
+    <ShadTextarea
       {...props}
-      className={`satdb-input ${props.className ?? ""}`}
+      className={cn("satdb-input", props.className)}
       style={{
         width: "100%",
         minHeight: 120,
@@ -164,15 +179,25 @@ export function Field({
   required?: boolean;
   helper?: string;
 }) {
+  const generatedId = React.useId();
+  const helperId = helper ? `${generatedId}-helper` : undefined;
+  const control = React.isValidElement<{ id?: string; "aria-describedby"?: string }>(children)
+    ? React.cloneElement(children, {
+        id: children.props.id ?? generatedId,
+        "aria-describedby": children.props["aria-describedby"] ?? helperId
+      })
+    : children;
+  const controlId = React.isValidElement<{ id?: string }>(control) ? control.props.id : generatedId;
+
   return (
-    <label style={{ display: "block" }}>
-      <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 6, fontWeight: 500 }}>
+    <div style={{ display: "block" }}>
+      <label htmlFor={controlId} style={{ display: "block", fontSize: 12, color: "var(--ink-soft)", marginBottom: 6, fontWeight: 500 }}>
         {label}
         {required && <span style={{ color: "var(--danger)" }}> *</span>}
-      </div>
-      {children}
-      {helper && <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 12, lineHeight: 1.45 }}>{helper}</div>}
-    </label>
+      </label>
+      {control}
+      {helper && <div id={helperId} style={{ marginTop: 6, color: "var(--muted)", fontSize: 12, lineHeight: 1.45 }}>{helper}</div>}
+    </div>
   );
 }
 
@@ -191,7 +216,8 @@ export function Badge({
     success: { background: "var(--success-soft)", color: "var(--success)" }
   };
   return (
-    <span
+    <ShadBadge
+      variant={tone === "danger" ? "destructive" : tone === "neutral" ? "secondary" : "outline"}
       style={{
         display: "inline-block",
         padding: "3px 10px",
@@ -202,7 +228,7 @@ export function Badge({
       }}
     >
       {children}
-    </span>
+    </ShadBadge>
   );
 }
 

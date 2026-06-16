@@ -167,10 +167,10 @@ export function SubTableEditor<T>({
 
   return (
     <div>
-      <div className="subtable-editor__header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, gap: 12 }}>
+      <div className="subtable-editor__header">
         <div>
-          <strong style={{ fontSize: 14 }}>{title}</strong>
-          {hint && <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>{hint}</div>}
+          <strong className="subtable-editor__title">{title}</strong>
+          {hint && <div className="subtable-editor__hint">{hint}</div>}
         </div>
         {permissions.canEdit ? (
           <Button className="subtable-editor__add" variant="secondary" onClick={() => setCreating(true)} style={{ padding: "4px 10px", fontSize: 12 }}>
@@ -191,7 +191,7 @@ export function SubTableEditor<T>({
             header: "",
             render: (row: T) => (
               permissions.canEdit || permissions.canDelete ? (
-                <span style={{ display: "inline-flex", gap: 6 }}>
+                <span className="subtable-editor__row-actions">
                   {permissions.canEdit && (
                     <Button
                       variant="ghost"
