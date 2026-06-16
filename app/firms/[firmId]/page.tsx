@@ -80,6 +80,8 @@ const PRODUCT_EXPORT_COLUMNS: ExportColumn<ProductService>[] = [
   { label: "System", value: (_firm, product) => product.system },
   { label: "Module", value: (_firm, product) => product.module },
   { label: "Component", value: (_firm, product) => product.component_name },
+  { label: "Product TRL", value: (_firm, product) => product.product_trl ?? "Unidentified" },
+  { label: "Flight Heritage", value: (_firm, product) => product.flight_heritage },
   { label: "Description", value: (_firm, product) => richTextToPlainText(product.description) }
 ];
 

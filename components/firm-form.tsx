@@ -7,11 +7,10 @@ import type { Firm } from "@/lib/schema";
 import { OWNERSHIP_TYPES, rolePermissions } from "@/lib/schema";
 import { apiConfigured, createFirm as createFirmApi } from "@/lib/api";
 import { Card, SectionTitle, Field, Input, Select, Button, Grid, LockedNote } from "./ui";
-import { useDatabase, useRole } from "@/lib/store";
+import { useRole } from "@/lib/store";
 
 export function FirmForm({ initial }: { initial?: Firm }) {
   const router = useRouter();
-  const db = useDatabase();
   const permissions = rolePermissions(useRole());
   const editing = !!initial;
   const [saving, setSaving] = useState(false);
@@ -164,14 +163,12 @@ export function FirmForm({ initial }: { initial?: Firm }) {
             <Field label="Parent company">
               <Input value={form.parent_company ?? ""} onChange={(e) => update("parent_company", e.target.value)} />
             </Field>
-            <Field label="Province">
-              <Select value={form.province} onChange={(e) => update("province", e.target.value)}>
-                {db.vocab.provinces.map((province) => (
-                  <option key={province} value={province}>
-                    {province}
-                  </option>
-                ))}
-              </Select>
+            <Field label="Province" helper="Type province name as it should appear in search and dashboard map.">
+              <Input
+                value={form.province}
+                onChange={(e) => update("province", e.target.value)}
+                autoComplete="address-level1"
+              />
             </Field>
             <Field label="Industrial zone / cluster">
               <Input value={form.industrial_zone ?? ""} onChange={(e) => update("industrial_zone", e.target.value)} />
@@ -211,7 +208,7 @@ export function FirmForm({ initial }: { initial?: Firm }) {
               Cancel
             </Button>
             <Button type="submit" disabled={saving}>
-              {saving ? "Saving..." : editing ? "Save changes" : "Create company"}
+              {saving ? "Saving..." : editing ? "Save changes" : "Add company"}
             </Button>
           </div>
         </div>

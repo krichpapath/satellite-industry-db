@@ -43,7 +43,7 @@ const CSV_TARGETS: { key: keyof Database; label: string; idField: string; idPref
     label: "Components",
     idField: "product_id",
     idPrefix: "P",
-    columns: ["firm_id", "product_name", "system", "module", "component_name", "description"]
+    columns: ["firm_id", "product_name", "system", "module", "component_name", "product_trl", "flight_heritage", "description"]
   },
   {
     key: "tech",

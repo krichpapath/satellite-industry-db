@@ -39,10 +39,10 @@ import {
   normalizeSystem
 } from "@/lib/component-taxonomy";
 import { richTextToPlainText, sanitizeRichText } from "@/lib/rich-text";
-import { Badge, Button, EmptyState, Field, Input, Modal, Select } from "./ui";
+import { Badge, Button, EmptyState, Field, Input, Modal, Select, Textarea } from "./ui";
 
 type ComponentForm = ProductService;
-type ComponentSortKey = "product_name" | "system" | "module" | "component_name" | "description";
+type ComponentSortKey = "product_name" | "system" | "module" | "component_name" | "product_trl" | "description";
 type SystemKind = "payload" | "eps" | "adcs" | "cdh" | "ttc" | "stcs" | "propulsion" | "unknown";
 
 const SYSTEM_VISUALS: Record<SystemKind, {
@@ -107,6 +107,10 @@ function SystemIconMark({ system }: { system: string }) {
   );
 }
 
+function formatProductTrl(value: ProductService["product_trl"]) {
+  return value === undefined ? "Unidentified" : String(value);
+}
+
 function blankComponent(firmId: string): ComponentForm {
   const system = COMPONENT_SYSTEMS[0] ?? UNIDENTIFIED_VALUE;
   const module = modulesForSystem(system)[0] ?? UNIDENTIFIED_VALUE;
@@ -117,6 +121,8 @@ function blankComponent(firmId: string): ComponentForm {
     system,
     module,
     component_name: "",
+    product_trl: "Unidentified",
+    flight_heritage: "",
     description: ""
   };
 }
@@ -133,6 +139,8 @@ function normalizeComponentRow(row: ComponentForm): ComponentForm {
     system,
     module,
     component_name: componentName,
+    product_trl: row.product_trl,
+    flight_heritage: row.flight_heritage?.trim() || undefined,
     description: sanitizeRichText(row.description)
   };
 }
@@ -142,6 +150,10 @@ function validateComponent(row: ComponentForm): string | null {
   if (!row.system) return "System is required.";
   if (!row.module) return "Module is required.";
   if (!row.component_name) return "Component is required.";
+  if (row.product_trl !== undefined && row.product_trl !== "Unidentified") {
+    const trl = Number(row.product_trl);
+    if (!Number.isInteger(trl) || trl < 1 || trl > 9) return "Product TRL must be 1-9 or Unidentified.";
+  }
   return null;
 }
 
@@ -465,6 +477,30 @@ function ComponentRecordEditor({
                 ))}
               </Select>
             </Field>
+            <Field label="Product TRL (1-9)" helper="Choose Unidentified if readiness level is not known yet.">
+              <Select
+                value={formatProductTrl(form.product_trl)}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  update({ product_trl: value === UNIDENTIFIED_VALUE ? UNIDENTIFIED_VALUE : Number(value) });
+                }}
+              >
+                <option value={UNIDENTIFIED_VALUE}>Unidentified</option>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((level) => (
+                  <option key={level} value={level}>
+                    {level}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Flight heritage" helper="Record proven use in vacuum, orbit, or space-equivalent operation.">
+              <Textarea
+                value={form.flight_heritage ?? ""}
+                onChange={(event) => update({ flight_heritage: event.target.value })}
+                placeholder="Example: Flown on LEO mission, thermal-vac qualified, no flight history yet"
+                rows={3}
+              />
+            </Field>
           </motion.div>
 
           <motion.div variants={fadeIn}>
@@ -520,14 +556,16 @@ export function ComponentRecordsPanel({
             row.system,
             row.module,
             row.component_name,
+            formatProductTrl(row.product_trl),
+            row.flight_heritage,
             richTextToPlainText(row.description)
           ].some((value) => String(value ?? "").toLowerCase().includes(needle))
         )
       : rows;
 
     return [...filtered].sort((a, b) => {
-      const aValue = sortColumn === "description" ? richTextToPlainText(a.description) : a[sortColumn];
-      const bValue = sortColumn === "description" ? richTextToPlainText(b.description) : b[sortColumn];
+      const aValue = sortColumn === "description" ? richTextToPlainText(a.description) : sortColumn === "product_trl" ? formatProductTrl(a.product_trl) : a[sortColumn];
+      const bValue = sortColumn === "description" ? richTextToPlainText(b.description) : sortColumn === "product_trl" ? formatProductTrl(b.product_trl) : b[sortColumn];
       const result = String(aValue ?? "").localeCompare(String(bValue ?? ""), undefined, { sensitivity: "base" });
       return sortDirection === "asc" ? result : -result;
     });
@@ -605,6 +643,7 @@ export function ComponentRecordsPanel({
                 <option value="system:asc">System A-Z</option>
                 <option value="module:asc">Module A-Z</option>
                 <option value="component_name:asc">Component A-Z</option>
+                <option value="product_trl:asc">TRL 1-9</option>
                 <option value="description:asc">Description A-Z</option>
               </Select>
             </label>
@@ -641,6 +680,10 @@ export function ComponentRecordsPanel({
                     <SortHead label="Component" column="component_name" active={sortColumn} direction={sortDirection} onSort={sortBy} />
                   </th>
                   <th>
+                    <SortHead label="TRL" column="product_trl" active={sortColumn} direction={sortDirection} onSort={sortBy} />
+                  </th>
+                  <th>Flight heritage</th>
+                  <th>
                     <SortHead label="Description" column="description" active={sortColumn} direction={sortDirection} onSort={sortBy} />
                   </th>
                   {(permissions.canEdit || permissions.canDelete) && <th>Actions</th>}
@@ -661,6 +704,14 @@ export function ComponentRecordsPanel({
                     </td>
                     <td>
                       <span className="component-table__wrap">{row.component_name}</span>
+                    </td>
+                    <td>
+                      <Badge tone={row.product_trl === "Unidentified" || row.product_trl === undefined ? "warn" : "accent"}>
+                        TRL {formatProductTrl(row.product_trl)}
+                      </Badge>
+                    </td>
+                    <td>
+                      <span className="component-table__wrap">{row.flight_heritage || "-"}</span>
                     </td>
                     <td className="component-table__description">
                       <RichDescriptionPreview html={row.description} />
@@ -709,7 +760,16 @@ export function ComponentRecordsPanel({
                 <div className="component-record-card__path">
                   <Badge>{row.module}</Badge>
                   <Badge>{row.component_name}</Badge>
+                  <Badge tone={row.product_trl === "Unidentified" || row.product_trl === undefined ? "warn" : "accent"}>
+                    TRL {formatProductTrl(row.product_trl)}
+                  </Badge>
                 </div>
+                {row.flight_heritage && (
+                  <div className="component-record-card__heritage">
+                    <strong>Flight heritage</strong>
+                    <span>{row.flight_heritage}</span>
+                  </div>
+                )}
                 <div className="component-record-card__description">
                   <RichDescriptionPreview html={row.description} />
                 </div>

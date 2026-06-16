@@ -87,6 +87,7 @@ CREATE TABLE IF NOT EXISTS products_services (
   naics_code TEXT,
   hs_code TEXT,
   product_trl INTEGER CHECK (product_trl IS NULL OR product_trl BETWEEN 1 AND 9),
+  flight_heritage TEXT,
   description TEXT,
   source_id TEXT REFERENCES data_sources(source_id) ON DELETE SET NULL,
   visibility_level TEXT NOT NULL DEFAULT 'internal'

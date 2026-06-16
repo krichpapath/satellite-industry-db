@@ -176,7 +176,6 @@ export default function SearchPage() {
                 </Link>
               )
             },
-            { key: "id", header: "ID", render: (company) => <code>{company.firm_id}</code> },
             { key: "own", header: "Ownership", render: (company) => <Badge>{company.ownership_type}</Badge> },
             { key: "loc", header: "Location", render: (company) => company.province },
             {

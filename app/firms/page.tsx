@@ -57,7 +57,6 @@ export default function FirmsPage() {
                 </Link>
               )
             },
-            { key: "id", header: "ID", render: (company) => <code>{company.firm_id}</code> },
             { key: "year", header: "Founded", render: (company) => company.year_established },
             { key: "own", header: "Ownership", render: (company) => <Badge>{company.ownership_type}</Badge> },
             { key: "prov", header: "Province", render: (company) => company.province },

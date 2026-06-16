@@ -46,6 +46,8 @@ export interface ProductService {
   component_name: string;
   system: string;
   module: string;
+  product_trl?: number | "Unidentified";
+  flight_heritage?: string;
   description?: string;
 }
 

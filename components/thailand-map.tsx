@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 
@@ -27,6 +27,7 @@ export function ThailandMap({
 }) {
   const [hover, setHover] = useState<string | null>(null);
   const max = Math.max(1, ...Object.values(counts));
+  const unmapped = Object.entries(counts).filter(([province, count]) => count > 0 && !COORDS[province]);
 
   return (
     <div style={{ position: "relative" }}>
@@ -78,8 +79,31 @@ export function ThailandMap({
         })}
       </svg>
       <div style={{ fontSize: 11, color: "var(--muted)", textAlign: "center", marginTop: 4 }}>
-        Stylised outline · circle size = company count · click to filter
+        Stylised outline Â· circle size = company count Â· click to filter
       </div>
+      {unmapped.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 6, marginTop: 8 }}>
+          {unmapped.map(([province, count]) => (
+            <button
+              key={province}
+              type="button"
+              onClick={() => onSelect?.(selected === province ? null : province)}
+              style={{
+                minHeight: 30,
+                border: "1px solid var(--line)",
+                borderRadius: 999,
+                background: selected === province ? "var(--primary)" : "var(--surface)",
+                color: selected === province ? "#fff" : "var(--ink-soft)",
+                padding: "3px 9px",
+                fontSize: 11,
+                cursor: onSelect ? "pointer" : "default"
+              }}
+            >
+              {province} ({count})
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

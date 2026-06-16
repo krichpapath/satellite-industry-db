@@ -33,6 +33,12 @@ function migrateProducts(products: unknown, base: Database): Database["products"
       const system = normalizeSystem(String(row.system ?? path?.system ?? fallbackSystem).trim());
       const module = system === "Unidentified" ? "Unidentified" : String(row.module ?? path?.module ?? fallbackModule).trim();
       const normalizedComponentName = system === "Unidentified" || module === "Unidentified" ? "Unidentified" : componentName;
+      const rawTrl = row.product_trl;
+      const productTrl = rawTrl === "Unidentified"
+        ? "Unidentified"
+        : Number.isInteger(Number(rawTrl)) && Number(rawTrl) >= 1 && Number(rawTrl) <= 9
+          ? Number(rawTrl)
+          : undefined;
 
       return {
         product_id: String(row.product_id ?? `P${String(index + 1).padStart(3, "0")}`),
@@ -41,6 +47,8 @@ function migrateProducts(products: unknown, base: Database): Database["products"
         component_name: normalizedComponentName || "Unspecified component",
         system,
         module,
+        product_trl: productTrl,
+        flight_heritage: row.flight_heritage ? String(row.flight_heritage) : undefined,
         description: row.description ? sanitizeRichText(row.description) : undefined
       };
     });

@@ -155,6 +155,12 @@ function normalizeProduct(row: RawRecord): Database["products"][number] {
   const system = normalizeSystem(toString(row.system ?? row.orbit_type ?? path?.system, fallbackSystem));
   const module = system === "Unidentified" ? "Unidentified" : toString(row.module ?? row.itu_service_class ?? path?.module, fallbackModule);
   const normalizedComponentName = system === "Unidentified" || module === "Unidentified" ? "Unidentified" : componentName;
+  const rawTrl = row.product_trl;
+  const productTrl = rawTrl === "Unidentified"
+    ? "Unidentified"
+    : Number.isInteger(Number(rawTrl)) && Number(rawTrl) >= 1 && Number(rawTrl) <= 9
+      ? Number(rawTrl)
+      : undefined;
 
   return {
     product_id: toString(row.product_id),
@@ -163,6 +169,8 @@ function normalizeProduct(row: RawRecord): Database["products"][number] {
     component_name: normalizedComponentName || "Unspecified component",
     system,
     module,
+    product_trl: productTrl,
+    flight_heritage: toString(row.flight_heritage) || undefined,
     description: sanitizeRichText(row.description) || undefined
   } as Database["products"][number];
 }
@@ -178,7 +186,9 @@ function productForApi(row: Database["products"][number]): RawRecord {
     technology_intensity: "Medium",
     sia_category: normalized.component_name,
     itu_service_class: normalized.module,
-    orbit_type: normalized.system
+    orbit_type: normalized.system,
+    product_trl: normalized.product_trl === "Unidentified" ? null : normalized.product_trl,
+    flight_heritage: normalized.flight_heritage || null
   };
 }
 

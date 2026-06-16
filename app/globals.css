@@ -830,7 +830,7 @@ a {
 
 .component-table {
   width: 100%;
-  min-width: 980px;
+  min-width: 1220px;
   border-collapse: collapse;
   font-size: 14px;
 }
@@ -1361,6 +1361,25 @@ a {
     font-size: 14px;
     line-height: 1.5;
     overflow-wrap: anywhere;
+  }
+
+  .component-record-card__heritage {
+    display: grid;
+    gap: 4px;
+    margin-top: 10px;
+    padding: 10px;
+    border: 1px solid var(--line-soft);
+    border-radius: 10px;
+    background: var(--surface-muted);
+    color: var(--ink-soft);
+    font-size: 13px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+
+  .component-record-card__heritage strong {
+    color: var(--ink);
+    font-size: 12px;
   }
 
   .component-record-card__actions {

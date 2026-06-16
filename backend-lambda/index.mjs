@@ -101,6 +101,8 @@ const SCHEMA_SQL = `
     system TEXT NOT NULL DEFAULT 'Unidentified',
     module TEXT NOT NULL DEFAULT 'Unidentified',
     component_name TEXT NOT NULL DEFAULT 'Unidentified',
+    product_trl INTEGER CHECK (product_trl IS NULL OR product_trl BETWEEN 1 AND 9),
+    flight_heritage TEXT,
     description TEXT,
     source_id TEXT REFERENCES data_sources(source_id) ON DELETE SET NULL,
     visibility_level TEXT NOT NULL DEFAULT 'internal'
@@ -114,7 +116,9 @@ const SCHEMA_SQL = `
   ALTER TABLE products_services
     ADD COLUMN IF NOT EXISTS system TEXT NOT NULL DEFAULT 'Unidentified',
     ADD COLUMN IF NOT EXISTS module TEXT NOT NULL DEFAULT 'Unidentified',
-    ADD COLUMN IF NOT EXISTS component_name TEXT NOT NULL DEFAULT 'Unidentified';
+    ADD COLUMN IF NOT EXISTS component_name TEXT NOT NULL DEFAULT 'Unidentified',
+    ADD COLUMN IF NOT EXISTS product_trl INTEGER CHECK (product_trl IS NULL OR product_trl BETWEEN 1 AND 9),
+    ADD COLUMN IF NOT EXISTS flight_heritage TEXT;
 
   UPDATE products_services
   SET
@@ -420,6 +424,8 @@ const TABLES = {
       "system",
       "module",
       "component_name",
+      "product_trl",
+      "flight_heritage",
       "description",
       "source_id",
       "visibility_level",
