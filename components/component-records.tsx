@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
 import { motion } from "framer-motion";
 import {
   ArrowUpDown,
   Bold,
   CircleHelp,
+  ChevronDown,
+  ChevronRight,
   Compass,
   Cpu,
   Flame,
@@ -507,6 +509,7 @@ export function ComponentRecordsPanel({
   const [searchTerm, setSearchTerm] = useState("");
   const [sortColumn, setSortColumn] = useState<ComponentSortKey>("product_name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(() => new Set());
 
   const grouped = useMemo(() => {
     const map: Record<string, Record<string, ProductService[]>> = {};
@@ -554,6 +557,15 @@ export function ComponentRecordsPanel({
     setSortDirection("asc");
   }
 
+  function toggleRow(productId: string) {
+    setExpandedRows((current) => {
+      const next = new Set(current);
+      if (next.has(productId)) next.delete(productId);
+      else next.add(productId);
+      return next;
+    });
+  }
+
   function create(row: ComponentForm) {
     const db = loadDb();
     const id = nextId("P", db.products as unknown as Record<string, unknown>[], "product_id");
@@ -584,12 +596,9 @@ export function ComponentRecordsPanel({
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div className="component-table-card">
         <div className="component-table-card__bar">
-          <div>
-            <strong style={{ fontSize: 16 }}>Component Records</strong>
-            <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
-              Product names mapped to expert System, Module, and Component categories.
-            </div>
-          </div>
+          <span className="component-table-card__count">
+            {visibleRows.length} of {rows.length} record{rows.length === 1 ? "" : "s"}
+          </span>
           <div className="component-table-card__actions">
             <label className="component-table-card__search">
               <Search size={15} aria-hidden="true" />
@@ -622,7 +631,7 @@ export function ComponentRecordsPanel({
               </Select>
             </label>
             {permissions.canAddComponent ? (
-              <Button variant="secondary" onClick={() => setCreating(true)} style={{ minHeight: 40 }}>
+              <Button onClick={() => setCreating(true)} style={{ minHeight: 40 }}>
                 Add component
               </Button>
             ) : (
@@ -641,85 +650,106 @@ export function ComponentRecordsPanel({
               <table className="component-table">
                 <thead>
                   <tr>
-                    <th>
+                    <th className="component-table__product-column">
                       <SortHead label="Product" column="product_name" active={sortColumn} direction={sortDirection} onSort={sortBy} />
                     </th>
-                    <th>
-                      <SortHead label="System" column="system" active={sortColumn} direction={sortDirection} onSort={sortBy} />
+                    <th className="component-table__classification-column">
+                      <SortHead label="Classification" column="system" active={sortColumn} direction={sortDirection} onSort={sortBy} />
                     </th>
-                    <th>
-                      <SortHead label="Module" column="module" active={sortColumn} direction={sortDirection} onSort={sortBy} />
-                    </th>
-                    <th>
-                      <SortHead label="Component" column="component_name" active={sortColumn} direction={sortDirection} onSort={sortBy} />
-                    </th>
-                    <th>
+                    <th className="component-table__trl-column">
                       <SortHead label="TRL" column="product_trl" active={sortColumn} direction={sortDirection} onSort={sortBy} />
                     </th>
-                    <th>Flight heritage</th>
-                    <th>
-                      <SortHead label="Description" column="description" active={sortColumn} direction={sortDirection} onSort={sortBy} />
-                    </th>
-                    {(permissions.canEdit || permissions.canDelete) && <th>Actions</th>}
+                    {(permissions.canEdit || permissions.canDelete) && <th className="component-table__actions-column">Actions</th>}
                   </tr>
                 </thead>
                 <tbody>
-                  {visibleRows.map((row) => (
-                    <tr key={row.product_id}>
-                      <td className="component-table__product">
-                        <div>{row.product_name || row.component_name}</div>
-                        <code>{row.product_id}</code>
-                      </td>
-                      <td>
-                        <SystemPill system={row.system} />
-                      </td>
-                      <td>
-                        <span className="component-table__wrap">{row.module}</span>
-                      </td>
-                      <td>
-                        <span className="component-table__wrap">{row.component_name}</span>
-                      </td>
-                      <td>
-                        <Badge tone={row.product_trl === "Unidentified" || row.product_trl === undefined ? "warn" : "accent"}>
-                          TRL {formatProductTrl(row.product_trl)}
-                        </Badge>
-                      </td>
-                      <td>
-                        <span className="component-table__wrap">{row.flight_heritage || "-"}</span>
-                      </td>
-                      <td className="component-table__description">
-                        <RichDescriptionPreview html={row.description} />
-                      </td>
-                      {(permissions.canEdit || permissions.canDelete) && (
-                        <td>
-                          <div className="component-table__actions">
-                            {permissions.canEdit && (
-                              <Button
-                                variant="ghost"
-                                onClick={() => setEditing(row)}
-                                ariaLabel={`Edit ${row.product_name || row.component_name}`}
-                                title="Edit component"
-                                style={{ padding: 8 }}
+                  {visibleRows.map((row) => {
+                    const expanded = expandedRows.has(row.product_id);
+                    const columnCount = permissions.canEdit || permissions.canDelete ? 4 : 3;
+                    return (
+                      <Fragment key={row.product_id}>
+                        <tr data-expanded={expanded ? "true" : "false"}>
+                          <td className="component-table__product">
+                            <div className="component-table__product-cell">
+                              <button
+                                type="button"
+                                className="component-table__expand"
+                                aria-label={`${expanded ? "Hide" : "Show"} details for ${row.product_name || row.component_name}`}
+                                aria-expanded={expanded}
+                                onClick={() => toggleRow(row.product_id)}
                               >
-                                <Pencil size={16} />
-                              </Button>
-                            )}
-                            {permissions.canDelete && (
-                              <Button
-                                variant="ghost"
-                                onClick={() => remove(row)}
-                                ariaLabel={`Delete ${row.product_name || row.component_name}`}
-                                title="Delete component"
-                                style={{ padding: 8, color: "var(--danger)" }}
-                              >
-                                <Trash2 size={16} />
-                              </Button>
-                            )}
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
+                                {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                              </button>
+                              <div>
+                                <strong>{row.product_name || row.component_name}</strong>
+                                <code>{row.product_id}</code>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <div className="component-table__classification">
+                              <SystemPill system={row.system} />
+                              <span>{row.module}</span>
+                              <small>{row.component_name}</small>
+                            </div>
+                          </td>
+                          <td className="component-table__trl">
+                            <span
+                              className="component-trl"
+                              data-known={row.product_trl === "Unidentified" || row.product_trl === undefined ? "false" : "true"}
+                            >
+                              TRL {formatProductTrl(row.product_trl)}
+                            </span>
+                          </td>
+                          {(permissions.canEdit || permissions.canDelete) && (
+                            <td>
+                              <div className="component-table__actions">
+                                {permissions.canEdit && (
+                                  <Button
+                                    variant="secondary"
+                                    onClick={() => setEditing(row)}
+                                    ariaLabel={`Edit ${row.product_name || row.component_name}`}
+                                    title="Edit component"
+                                    style={{ minHeight: 36, padding: "7px 10px" }}
+                                  >
+                                    <Pencil size={15} />
+                                    Edit
+                                  </Button>
+                                )}
+                                {permissions.canDelete && (
+                                  <Button
+                                    variant="ghost"
+                                    onClick={() => remove(row)}
+                                    ariaLabel={`Delete ${row.product_name || row.component_name}`}
+                                    title="Delete component"
+                                    style={{ minHeight: 36, padding: 8, color: "var(--danger)" }}
+                                  >
+                                    <Trash2 size={15} />
+                                  </Button>
+                                )}
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                        {expanded && (
+                          <tr className="component-table__details-row">
+                            <td colSpan={columnCount}>
+                              <div className="component-table__details-grid">
+                                <section>
+                                  <span>Description</span>
+                                  <RichDescriptionPreview html={row.description} />
+                                </section>
+                                <section>
+                                  <span>Flight heritage</span>
+                                  <p>{row.flight_heritage || "No flight heritage recorded."}</p>
+                                </section>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -800,6 +830,10 @@ export function ComponentRecordsPanel({
 
       {rows.length > 0 && (
         <div className="component-summary-list">
+          <div className="component-summary-intro">
+            <h3>System coverage</h3>
+            <p>Components grouped by satellite system and module.</p>
+          </div>
           {Object.entries(grouped).sort(([a], [b]) => alphaCompare(a, b)).map(([system, modules]) => {
             const systemRows = Object.values(modules).flat();
             return (
@@ -810,8 +844,14 @@ export function ComponentRecordsPanel({
                     <span>{system}</span>
                   </div>
                   <div className="component-summary-section__counts">
-                    <Badge tone={system === UNIDENTIFIED_VALUE ? "warn" : "accent"}>{systemRows.length} component{systemRows.length === 1 ? "" : "s"}</Badge>
-                    <Badge>{Object.keys(modules).length} module{Object.keys(modules).length === 1 ? "" : "s"}</Badge>
+                    <div className="component-summary-metric">
+                      <strong>{systemRows.length}</strong>
+                      <span>component{systemRows.length === 1 ? "" : "s"}</span>
+                    </div>
+                    <div className="component-summary-metric">
+                      <strong>{Object.keys(modules).length}</strong>
+                      <span>module{Object.keys(modules).length === 1 ? "" : "s"}</span>
+                    </div>
                   </div>
                 </div>
                 <div className="component-summary-section__body">

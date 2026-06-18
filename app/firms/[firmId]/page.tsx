@@ -557,7 +557,7 @@ function ProductsTab({
           }}
         >
           <SectionTitle hint={`${products.length} component record(s). Analysts can add records; Admins can edit or delete.`}>
-            Component Records
+            Components
           </SectionTitle>
           <FirmDatasetExportButton
             firm={firm}

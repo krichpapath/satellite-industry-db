@@ -7,7 +7,14 @@ import { Badge as ShadBadge } from "@/components/ui/badge";
 import { Button as ShadButton } from "@/components/ui/button";
 import { Card as ShadCard } from "@/components/ui/card";
 import { Input as ShadInput } from "@/components/ui/input";
-import { NativeSelect as ShadNativeSelect } from "@/components/ui/native-select";
+import {
+  Select as ShadSelect,
+  SelectContent as ShadSelectContent,
+  SelectGroup as ShadSelectGroup,
+  SelectItem as ShadSelectItem,
+  SelectTrigger as ShadSelectTrigger,
+  SelectValue as ShadSelectValue
+} from "@/components/ui/select";
 import { Textarea as ShadTextarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
@@ -150,22 +157,89 @@ export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
 }
 
 export function Select({ size: _htmlSize, ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) {
+  const {
+    children,
+    className,
+    defaultValue,
+    disabled,
+    id,
+    name,
+    onChange,
+    required,
+    style,
+    value,
+    "aria-describedby": ariaDescribedBy,
+    "aria-label": ariaLabel,
+    title
+  } = props;
+  const emptyValue = "__satdb_empty__";
+  const [uncontrolledValue, setUncontrolledValue] = React.useState(String(defaultValue ?? ""));
+  const selectedValue = value === undefined ? uncontrolledValue : String(value);
+  const options: React.ReactElement<React.OptionHTMLAttributes<HTMLOptionElement>>[] = [];
+
+  React.Children.forEach(children, (child) => {
+    if (React.isValidElement<React.OptionHTMLAttributes<HTMLOptionElement>>(child) && child.type === "option") {
+      options.push(child);
+    }
+  });
+  const selectedOption = options.find((option) => String(option.props.value ?? "") === selectedValue);
+
+  function choose(nextValue: string) {
+    const actualValue = nextValue === emptyValue ? "" : nextValue;
+    if (value === undefined) setUncontrolledValue(actualValue);
+    // ponytail: preserve existing native-select handlers without changing every caller.
+    const target = { value: actualValue } as HTMLSelectElement;
+    onChange?.({ target, currentTarget: target } as React.ChangeEvent<HTMLSelectElement>);
+  }
+
   return (
-    <ShadNativeSelect
-      {...props}
-      className={cn("satdb-input", props.className)}
-      style={{
-        width: "100%",
-        minHeight: 44,
-        padding: "9px 12px",
-        border: "1px solid var(--line)",
-        borderRadius: 10,
-        background: "var(--surface)",
-        color: "var(--ink)",
-        fontSize: 14,
-        ...props.style
-      }}
-    />
+    <div className="satdb-select-shell">
+      <ShadSelect
+        value={selectedValue || emptyValue}
+        onValueChange={choose}
+        disabled={disabled}
+        name={name}
+        required={required}
+      >
+        <ShadSelectTrigger
+          id={id}
+          aria-describedby={ariaDescribedBy}
+          aria-label={ariaLabel}
+          title={title}
+          className={cn("satdb-input satdb-select__trigger", className)}
+          style={{
+            width: "100%",
+            minHeight: 44,
+            padding: "9px 12px",
+            border: "1px solid var(--line)",
+            borderRadius: 10,
+            background: "var(--surface)",
+            color: "var(--ink)",
+            fontSize: 14,
+            ...style
+          }}
+        >
+          <ShadSelectValue>{selectedOption?.props.children}</ShadSelectValue>
+        </ShadSelectTrigger>
+        <ShadSelectContent position="popper" align="start" className="satdb-select__content">
+          <ShadSelectGroup>
+            {options.map((option, index) => {
+              const optionValue = String(option.props.value ?? "");
+              return (
+                <ShadSelectItem
+                  key={option.key ?? `${optionValue}-${index}`}
+                  value={optionValue || emptyValue}
+                  disabled={option.props.disabled}
+                  className="satdb-select__option"
+                >
+                  {option.props.children}
+                </ShadSelectItem>
+              );
+            })}
+          </ShadSelectGroup>
+        </ShadSelectContent>
+      </ShadSelect>
+    </div>
   );
 }
 
@@ -240,6 +314,7 @@ export function Badge({
   return (
     <ShadBadge
       variant={tone === "danger" ? "destructive" : tone === "neutral" ? "secondary" : "outline"}
+      className="satdb-badge"
       style={{
         display: "inline-block",
         padding: "3px 10px",
@@ -439,7 +514,7 @@ export function Table<T>({
             {detailColumns.length > 0 && (
               <dl className="mobile-record-card__details">
                 {detailColumns.map((column) => (
-                  <div key={column.key} className="mobile-record-card__field">
+                  <div key={column.key} className="mobile-record-card__field" data-field={column.key}>
                     <dt>{column.header}</dt>
                     <dd>{column.render(row)}</dd>
                   </div>
