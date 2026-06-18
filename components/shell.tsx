@@ -78,7 +78,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div
       className="app-shell"
       data-mobile-open={mobileOpen ? "true" : "false"}
-      style={{ display: "grid", gridTemplateColumns: "240px 1fr", minHeight: "100vh" }}
+      style={{ display: "grid", gridTemplateColumns: "240px 1fr", minHeight: "100vh", alignItems: "stretch" }}
     >
       <header className="app-shell__mobile-top">
         <button
@@ -117,7 +117,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           background: "var(--surface)",
           position: "sticky",
           top: 0,
-          height: "100vh",
+          minHeight: "100vh",
+          overflowX: "hidden",
           overflowY: "auto"
         }}
       >
@@ -261,7 +262,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     color: active ? "var(--primary)" : isHover ? "var(--ink)" : "var(--ink-soft)",
                     fontWeight: active ? 600 : 500,
                     transition: "color 160ms ease, transform 180ms cubic-bezier(.2,.7,.2,1)",
-                    transform: isHover && !active ? "translateX(3px)" : "translateX(0)"
+                    transform: "translateX(0)"
                   }}
                 >
                   <motion.span

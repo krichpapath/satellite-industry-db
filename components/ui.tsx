@@ -64,10 +64,30 @@ export function Button({
   style?: React.CSSProperties;
 }) {
   const palette: Record<BtnVariant, React.CSSProperties> = {
-    primary: { background: "var(--primary)", color: "#fff", borderColor: "var(--primary)" },
-    secondary: { background: "var(--surface)", color: "var(--ink)", borderColor: "var(--line)" },
-    ghost: { background: "transparent", color: "var(--ink)", borderColor: "transparent" },
-    danger: { background: "var(--danger)", color: "#fff", borderColor: "var(--danger)" }
+    primary: {
+      background: "var(--primary)",
+      color: "#fff",
+      borderColor: "color-mix(in srgb, var(--primary) 86%, #fff)",
+      boxShadow: "0 5px 12px rgba(18, 49, 95, 0.24)"
+    },
+    secondary: {
+      background: "color-mix(in srgb, var(--primary) 7%, var(--surface))",
+      color: "var(--primary-strong)",
+      borderColor: "color-mix(in srgb, var(--primary) 22%, var(--line))",
+      boxShadow: "0 3px 8px rgba(16, 24, 40, 0.08)"
+    },
+    ghost: {
+      background: "color-mix(in srgb, var(--surface-muted) 72%, transparent)",
+      color: "var(--ink)",
+      borderColor: "transparent",
+      boxShadow: "none"
+    },
+    danger: {
+      background: "var(--danger)",
+      color: "#fff",
+      borderColor: "color-mix(in srgb, var(--danger) 86%, #fff)",
+      boxShadow: "0 5px 12px rgba(180, 35, 24, 0.22)"
+    }
   };
   const shadVariant: Record<BtnVariant, React.ComponentProps<typeof ShadButton>["variant"]> = {
     primary: "default",
@@ -82,11 +102,13 @@ export function Button({
       aria-label={ariaLabel}
       variant={shadVariant[variant]}
       className={cn("satdb-button", className)}
+      data-variant={variant}
       onClick={onClick}
       disabled={disabled}
       style={{
         ...palette[variant],
-        border: "1px solid",
+        borderStyle: "solid",
+        borderWidth: 1,
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
@@ -97,12 +119,12 @@ export function Button({
         fontSize: 14,
         cursor: disabled ? "not-allowed" : "pointer",
         opacity: disabled ? 0.5 : 1,
-        transition: "transform 140ms var(--ease-out-quint), box-shadow 180ms var(--ease-out-quint), border-color 180ms var(--ease-out-quint), background-color 180ms var(--ease-out-quint), color 180ms var(--ease-out-quint)",
+        transition: "transform 220ms var(--ease-out-expo), box-shadow 240ms var(--ease-out-quint), border-color 220ms var(--ease-out-quint), background-color 220ms var(--ease-out-quint), color 180ms var(--ease-out-quint)",
         ...style,
         minHeight: 44
       }}
     >
-      {children}
+      <span className="satdb-button__content">{children}</span>
     </ShadButton>
   );
 }
@@ -358,11 +380,13 @@ type TableColumn<T> = {
 export function Table<T>({
   rows,
   columns,
-  empty = "No data"
+  empty = "No data",
+  getRowKey
 }: {
   rows: T[];
   columns: TableColumn<T>[];
   empty?: string;
+  getRowKey?: (row: T, index: number) => React.Key;
 }) {
   if (rows.length === 0) return <EmptyState message={empty} />;
   const primaryColumn = columns.find((column) => column.header.trim()) ?? columns[0];
@@ -395,7 +419,7 @@ export function Table<T>({
         </thead>
         <tbody>
           {rows.map((r, i) => (
-            <tr key={i} style={{ borderBottom: "1px solid var(--line-soft)" }}>
+            <tr key={getRowKey?.(r, i) ?? i} style={{ borderBottom: "1px solid var(--line-soft)" }}>
               {columns.map((c) => (
                 <td key={c.key} style={{ padding: "10px 12px", color: "var(--ink)", verticalAlign: "top" }}>
                   {c.render(r)}
@@ -408,7 +432,7 @@ export function Table<T>({
     </div>
       <div className="mobile-record-list" aria-label="Records">
         {rows.map((row, index) => (
-          <article className="mobile-record-card" key={index}>
+          <article className="mobile-record-card" key={getRowKey?.(row, index) ?? index}>
             <div className="mobile-record-card__primary">
               {primaryColumn.render(row)}
             </div>

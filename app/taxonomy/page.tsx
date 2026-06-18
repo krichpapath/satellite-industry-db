@@ -37,6 +37,10 @@ const HINTS: Partial<Record<keyof Vocab, string>> = {
   component_names: "Expert workbook Component list."
 };
 
+function alphaCompare(a: string, b: string) {
+  return a.localeCompare(b, undefined, { sensitivity: "base" });
+}
+
 export default function TaxonomyPage() {
   const db = useDatabase();
   const [newValue, setNewValue] = useState<Record<string, string>>({});
@@ -51,7 +55,7 @@ export default function TaxonomyPage() {
     commit(
       { action: "create", table: "vocab", id: key, summary: `Added "${v}" to ${key}` },
       (d) => {
-        d.vocab[key] = [...d.vocab[key], v];
+        d.vocab[key] = [...d.vocab[key], v].sort(alphaCompare);
       }
     );
     setNewValue((p) => ({ ...p, [key]: "" }));
@@ -78,11 +82,11 @@ export default function TaxonomyPage() {
         </header>
 
         <Grid cols={2} gap={18}>
-          {(Object.keys(LABELS) as (keyof Vocab)[]).map((key) => (
+          {(Object.keys(LABELS) as (keyof Vocab)[]).sort((a, b) => alphaCompare(LABELS[a], LABELS[b])).map((key) => (
             <Card key={key}>
               <SectionTitle hint={HINTS[key]}>{LABELS[key]}</SectionTitle>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
-                {db.vocab[key].map((term) => (
+                {[...db.vocab[key]].sort(alphaCompare).map((term) => (
                   <span
                     key={term}
                     style={{

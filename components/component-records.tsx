@@ -111,6 +111,14 @@ function formatProductTrl(value: ProductService["product_trl"]) {
   return value === undefined ? "Unidentified" : String(value);
 }
 
+function alphaCompare(a: string, b: string) {
+  return a.localeCompare(b, undefined, { sensitivity: "base" });
+}
+
+function componentRowLabel(row: ProductService) {
+  return row.product_name || row.component_name || "";
+}
+
 function blankComponent(firmId: string): ComponentForm {
   const system = COMPONENT_SYSTEMS[0] ?? UNIDENTIFIED_VALUE;
   const module = modulesForSystem(system)[0] ?? UNIDENTIFIED_VALUE;
@@ -591,7 +599,7 @@ export function ComponentRecordsPanel({
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Search components..."
                 aria-label="Search component records"
-                style={{ border: 0, boxShadow: "none", paddingLeft: 4, minWidth: 220 }}
+                style={{ borderWidth: 0, boxShadow: "none", paddingLeft: 4, minWidth: 220 }}
               />
             </label>
             <label className="component-table-card__mobile-sort">
@@ -792,7 +800,7 @@ export function ComponentRecordsPanel({
 
       {rows.length > 0 && (
         <div className="component-summary-list">
-          {Object.entries(grouped).map(([system, modules]) => {
+          {Object.entries(grouped).sort(([a], [b]) => alphaCompare(a, b)).map(([system, modules]) => {
             const systemRows = Object.values(modules).flat();
             return (
               <section key={system} className="component-summary-section">
@@ -807,11 +815,11 @@ export function ComponentRecordsPanel({
                   </div>
                 </div>
                 <div className="component-summary-section__body">
-                  {Object.entries(modules).map(([module, moduleRows]) => (
+                  {Object.entries(modules).sort(([a], [b]) => alphaCompare(a, b)).map(([module, moduleRows]) => (
                     <div key={module} className="component-summary-module">
                       <div className="component-summary-module__title">{module}</div>
                       <div className="component-summary-module__rows">
-                        {moduleRows.map((row) => (
+                        {[...moduleRows].sort((a, b) => alphaCompare(componentRowLabel(a), componentRowLabel(b))).map((row) => (
                           <div key={row.product_id} className="component-summary-row">
                             <div className="component-summary-row__main">
                               <div className="component-summary-row__name">{row.product_name || row.component_name}</div>

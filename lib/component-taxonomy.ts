@@ -175,6 +175,17 @@ export const UNIDENTIFIED_VALUE = "Unidentified";
 
 const RAW_COMPONENT_SYSTEMS = Object.keys(SATELLITE_COMPONENT_TAXONOMY) as ComponentSystem[];
 
+function alphaCompare(a: string, b: string) {
+  return a.localeCompare(b, undefined, { sensitivity: "base" });
+}
+
+function sortedWithUnidentifiedLast(values: string[]): string[] {
+  return [
+    ...values.filter((value) => value !== UNIDENTIFIED_VALUE).sort(alphaCompare),
+    UNIDENTIFIED_VALUE
+  ];
+}
+
 export function cleanSystemLabel(system: string): string {
   return String(system ?? "").replace(/^\s*\d+\.\s*/, "").trim();
 }
@@ -195,15 +206,14 @@ export function normalizeSystem(system: string): string {
 }
 
 export const COMPONENT_SYSTEMS = [
-  ...RAW_COMPONENT_SYSTEMS.map(cleanSystemLabel),
-  UNIDENTIFIED_VALUE
+  ...sortedWithUnidentifiedLast(RAW_COMPONENT_SYSTEMS.map(cleanSystemLabel))
 ];
 
 export function modulesForSystem(system: string): string[] {
   if (normalizeSystem(system) === UNIDENTIFIED_VALUE) return [UNIDENTIFIED_VALUE];
   const rawSystem = rawSystemFor(system);
   const modules = rawSystem ? SATELLITE_COMPONENT_TAXONOMY[rawSystem] : undefined;
-  return modules ? [...Object.keys(modules), UNIDENTIFIED_VALUE] : [UNIDENTIFIED_VALUE];
+  return modules ? sortedWithUnidentifiedLast(Object.keys(modules)) : [UNIDENTIFIED_VALUE];
 }
 
 export function componentsForModule(system: string, module: string): string[] {
@@ -212,7 +222,7 @@ export function componentsForModule(system: string, module: string): string[] {
   const modules = rawSystem ? SATELLITE_COMPONENT_TAXONOMY[rawSystem] : undefined;
   if (!modules) return [UNIDENTIFIED_VALUE];
   const components = [...(modules[module as keyof typeof modules] ?? [])].map(cleanComponentLabel);
-  return [...components, UNIDENTIFIED_VALUE];
+  return sortedWithUnidentifiedLast(components);
 }
 
 export function allComponentNames(): string[] {

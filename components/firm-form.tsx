@@ -4,10 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { loadDb, commit, nextId } from "@/lib/store";
 import type { Firm } from "@/lib/schema";
-import { OWNERSHIP_TYPES, rolePermissions } from "@/lib/schema";
+import { OWNERSHIP_TYPES, PROVINCE_OPTIONS, rolePermissions } from "@/lib/schema";
 import { apiConfigured, createFirm as createFirmApi } from "@/lib/api";
 import { Card, SectionTitle, Field, Input, Select, Button, Grid, LockedNote } from "./ui";
 import { useRole } from "@/lib/store";
+import { ProvinceCombobox } from "./province-combobox";
 
 export function FirmForm({ initial }: { initial?: Firm }) {
   const router = useRouter();
@@ -23,7 +24,7 @@ export function FirmForm({ initial }: { initial?: Firm }) {
       year_established: new Date().getFullYear(),
       ownership_type: "Local",
       industry_code: "",
-      province: "Bangkok",
+      province: "Unidentified",
       industrial_zone: "",
       website: "",
       contact_email: "",
@@ -40,6 +41,10 @@ export function FirmForm({ initial }: { initial?: Firm }) {
     e.preventDefault();
     if (!form.firm_name.trim()) {
       alert("Company name is required.");
+      return;
+    }
+    if (!PROVINCE_OPTIONS.includes(form.province as (typeof PROVINCE_OPTIONS)[number])) {
+      alert("Choose a Thailand province or Unidentified from the suggestions.");
       return;
     }
     setSaving(true);
@@ -163,11 +168,10 @@ export function FirmForm({ initial }: { initial?: Firm }) {
             <Field label="Parent company">
               <Input value={form.parent_company ?? ""} onChange={(e) => update("parent_company", e.target.value)} />
             </Field>
-            <Field label="Province" helper="Type province name as it should appear in search and dashboard map.">
-              <Input
+            <Field label="Province" helper="Type a few letters, then choose a Thailand province or Unidentified.">
+              <ProvinceCombobox
                 value={form.province}
-                onChange={(e) => update("province", e.target.value)}
-                autoComplete="address-level1"
+                onChange={(value) => update("province", value)}
               />
             </Field>
             <Field label="Industrial zone / cluster">

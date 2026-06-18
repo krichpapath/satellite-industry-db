@@ -27,6 +27,7 @@ import {
 } from "@/components/ui";
 import { csvToObjects } from "@/lib/csv";
 import type { Database } from "@/lib/schema";
+import { createAllComponentsXlsx } from "@/lib/component-xlsx";
 
 type Tab = "json" | "csv" | "danger";
 
@@ -94,6 +95,8 @@ export default function AdminPage() {
   const [csvTarget, setCsvTarget] = useState<keyof Database>("firms");
   const [csvPreview, setCsvPreview] = useState<Record<string, string>[] | null>(null);
   const [status, setStatus] = useState<{ kind: "ok" | "err"; msg: string } | null>(null);
+  const [componentExportStatus, setComponentExportStatus] = useState<{ kind: "ok" | "err"; msg: string } | null>(null);
+  const [exportingComponents, setExportingComponents] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   function doExport() {
@@ -118,6 +121,33 @@ export default function AdminPage() {
   function doImport() {
     const res = importJson(jsonText);
     setStatus(res.ok ? { kind: "ok", msg: "Database replaced from JSON." } : { kind: "err", msg: res.error ?? "Import failed." });
+  }
+
+  async function downloadAllComponents() {
+    setExportingComponents(true);
+    setComponentExportStatus(null);
+    try {
+      const bytes = await createAllComponentsXlsx(db);
+      const blob = new Blob([bytes], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `satdb-all-components-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      setComponentExportStatus({ kind: "ok", msg: `Downloaded ${db.products.length} component row(s).` });
+    } catch (error) {
+      setComponentExportStatus({
+        kind: "err",
+        msg: error instanceof Error ? error.message : "Component export failed."
+      });
+    } finally {
+      setExportingComponents(false);
+    }
   }
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -246,6 +276,26 @@ export default function AdminPage() {
               <Stat key={label} label={label} value={n} />
             ))}
           </Grid>
+        </Card>
+
+        <Card>
+          <SectionTitle hint="One Excel worksheet containing components from every company.">
+            Component Export
+          </SectionTitle>
+          <div className="admin-action-row" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <Button
+              onClick={downloadAllComponents}
+              disabled={db.products.length === 0 || exportingComponents}
+            >
+              {exportingComponents ? "Preparing Excel..." : "Download all components (.xlsx)"}
+            </Button>
+            <Badge tone="accent">{db.products.length} component{db.products.length === 1 ? "" : "s"}</Badge>
+            {componentExportStatus && (
+              <Badge tone={componentExportStatus.kind === "ok" ? "success" : "danger"}>
+                {componentExportStatus.msg}
+              </Badge>
+            )}
+          </div>
         </Card>
 
         <div className="admin-tab-row" style={{ display: "flex", gap: 6 }}>
