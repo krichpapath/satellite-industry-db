@@ -2281,6 +2281,10 @@ a {
     width: 100%;
   }
 
+  .firm-form-actions > div:last-child {
+    flex-direction: column-reverse;
+  }
+
   .subtable-editor__header {
     align-items: stretch !important;
     flex-direction: column;
