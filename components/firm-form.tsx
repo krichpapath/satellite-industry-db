@@ -126,7 +126,7 @@ export function FirmForm({ initial }: { initial?: Firm }) {
   }
 
   if (editing && !permissions.canEdit) return <LockedNote min="Admin" />;
-  if (!editing && !permissions.canCreateCompany) return <LockedNote min="Analyst" />;
+  if (!editing && !permissions.canCreateCompany) return <LockedNote min="Admin" />;
 
   return (
     <>

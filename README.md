@@ -11,9 +11,10 @@ Next.js App Router prototype for the Thai Satellite Industry Database data-plann
 
 ## Run
 
+Easiest way on this PC:
+
 ```powershell
-npm.cmd install
-npm.cmd run dev
+.\start.cmd
 ```
 
 Open:
@@ -22,7 +23,15 @@ Open:
 http://127.0.0.1:3000
 ```
 
-`start.cmd` runs the same dev server.
+`start.cmd` uses `npm.cmd run dev` when npm is available. If npm is not on PATH, it falls back to Codex's bundled Node runtime and the installed `node_modules`.
+
+For a fresh checkout, install dependencies once first:
+
+```powershell
+npm.cmd install
+```
+
+Then run `.\start.cmd` again. If `npm.cmd` is not available on a fresh checkout, install Node.js first.
 
 ## Project Layout
 
@@ -32,7 +41,7 @@ http://127.0.0.1:3000
 - `backend-lambda/` - AWS Lambda API package and deployment zip
 - `database/` - PostgreSQL schema, seed SQL, and migration notes
 - `tools/` - local utility scripts, including API test seeding
-- `docs/` - research documents, old prototypes, extracted document internals, and archived scratch work
+- `docs/` - research documents and old prototypes
 
 ## Vercel
 
@@ -105,10 +114,10 @@ Current API surface:
 ## Routes
 
 - `/` - input workbench
-- `/firms` - firm anchor records
-- `/firms/new` - expert firm intake flow
-- `/firms/[firmId]` - firm overview and domain completeness
-- `/firms/[firmId]/edit` - firm edit flow
+- `/companies` - firm anchor records (old `/firms/*` URLs redirect here)
+- `/companies/new` - expert firm intake flow
+- `/companies/[firmId]` - firm overview and domain completeness
+- `/companies/[firmId]/edit` - firm edit flow
 - `/sources` - provenance register
 - `/taxonomy` - controlled vocabulary management
 - `/audit` - audit trail

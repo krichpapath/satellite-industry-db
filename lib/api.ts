@@ -1,4 +1,4 @@
-import type { Database, Firm, OwnershipType } from "./schema";
+import type { Database, Firm, OwnershipType, RecordState } from "./schema";
 import { DEFAULT_VOCAB } from "./schema";
 import { COMPONENT_SYSTEMS, cleanComponentLabel, findComponentPath, modulesForSystem, normalizeSystem } from "./component-taxonomy";
 import { sanitizeRichText } from "./rich-text";
@@ -8,21 +8,6 @@ export const API_BASE_URL = rawApiBase.replace(/\/+$/, "");
 
 type RawRecord = Record<string, unknown>;
 type ApiTableKey = Exclude<keyof Database, "vocab">;
-type RowFor<K extends ApiTableKey> = Database[K] extends Array<infer Row> ? Row : never;
-
-const TABLE_PATHS: Record<ApiTableKey, string> = {
-  firms: "/firms",
-  size_finance: "/size-finance",
-  products: "/products",
-  tech: "/tech",
-  facilities: "/facilities",
-  hr: "/hr",
-  linkages: "/linkages",
-  collabs: "/collaborations",
-  esg: "/esg",
-  sources: "/sources",
-  audit: "/audit"
-};
 
 function isRecord(value: unknown): value is RawRecord {
   return typeof value === "object" && value !== null;
@@ -54,6 +39,11 @@ function normalizeOwnership(value: unknown): OwnershipType {
   if (next === "jv" || next.includes("joint")) return "JV";
   if (next.includes("foreign")) return "Foreign";
   return "Local";
+}
+
+function normalizeRecordState(value: unknown): RecordState {
+  const state = toString(value).toLowerCase();
+  return state === "draft" ? "draft" : "public";
 }
 
 function unwrapApiPayload(value: unknown): unknown {
@@ -171,7 +161,8 @@ function normalizeProduct(row: RawRecord): Database["products"][number] {
     module,
     product_trl: productTrl,
     flight_heritage: toString(row.flight_heritage) || undefined,
-    description: sanitizeRichText(row.description) || undefined
+    description: sanitizeRichText(row.description) || undefined,
+    record_state: normalizeRecordState(row.record_state ?? row.review_status)
   } as Database["products"][number];
 }
 
@@ -188,7 +179,9 @@ function productForApi(row: Database["products"][number]): RawRecord {
     itu_service_class: normalized.module,
     orbit_type: normalized.system,
     product_trl: normalized.product_trl === "Unidentified" ? null : normalized.product_trl,
-    flight_heritage: normalized.flight_heritage || null
+    flight_heritage: normalized.flight_heritage || null,
+    visibility_level: normalized.record_state === "public" ? "public" : "internal",
+    review_status: normalized.record_state === "draft" ? "draft" : "published"
   };
 }
 
@@ -318,7 +311,7 @@ export function apiConfigured() {
   return Boolean(API_BASE_URL);
 }
 
-export function apiUrl(path: string) {
+function apiUrl(path: string) {
   if (!API_BASE_URL) {
     throw new Error("NEXT_PUBLIC_API_BASE_URL is not configured.");
   }
@@ -354,14 +347,6 @@ export async function saveDataset(db: Database): Promise<{ ok: boolean; counts?:
   return { ok: false };
 }
 
-export async function getFirms(): Promise<Firm[]> {
-  const res = await apiFetch("/firms");
-  const data: unknown = await res.json();
-  return extractRows(data, "firms")
-    .map(normalizeFirm)
-    .filter((firm): firm is Firm => Boolean(firm));
-}
-
 export async function createFirm(firm: Firm): Promise<Firm> {
   const res = await apiFetch("/firms", {
     method: "POST",
@@ -379,50 +364,11 @@ export async function createFirm(firm: Firm): Promise<Firm> {
       contact_email: firm.contact_email || null,
       source_id: firm.source_id || null,
       visibility_level: "internal",
-      review_status: "draft"
+      review_status: "published"
     })
   });
   const data: unknown = await res.json();
   const normalized = normalizeFirm(unwrapApiPayload(data));
   if (!normalized) throw new Error("API returned invalid firm payload.");
   return normalized;
-}
-
-export async function updateFirm(firm: Firm): Promise<Firm> {
-  const res = await apiFetch(`/firms/${encodeURIComponent(firm.firm_id)}`, {
-    method: "PUT",
-    body: JSON.stringify(firm)
-  });
-  const data: unknown = await res.json();
-  const normalized = normalizeFirm(unwrapApiPayload(data));
-  if (!normalized) throw new Error("API returned invalid firm payload.");
-  return normalized;
-}
-
-export async function deleteFirm(firmId: string): Promise<void> {
-  await apiFetch(`/firms/${encodeURIComponent(firmId)}`, { method: "DELETE" });
-}
-
-export async function createRecord<K extends ApiTableKey>(table: K, row: RowFor<K>): Promise<RowFor<K>> {
-  const res = await apiFetch(TABLE_PATHS[table], {
-    method: "POST",
-    body: JSON.stringify(table === "products" ? productForApi(row as Database["products"][number]) : row)
-  });
-  return (await res.json()) as RowFor<K>;
-}
-
-export async function updateRecord<K extends ApiTableKey>(
-  table: K,
-  id: string,
-  row: RowFor<K>
-): Promise<RowFor<K>> {
-  const res = await apiFetch(`${TABLE_PATHS[table]}/${encodeURIComponent(id)}`, {
-    method: "PUT",
-    body: JSON.stringify(table === "products" ? productForApi(row as Database["products"][number]) : row)
-  });
-  return (await res.json()) as RowFor<K>;
-}
-
-export async function deleteRecord<K extends ApiTableKey>(table: K, id: string): Promise<void> {
-  await apiFetch(`${TABLE_PATHS[table]}/${encodeURIComponent(id)}`, { method: "DELETE" });
 }

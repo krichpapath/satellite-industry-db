@@ -40,7 +40,8 @@ export function SubTableEditor<T>({
   idPrefix,
   fields,
   display,
-  emptyLabel = "No records."
+  emptyLabel = "No records.",
+  canManage
 }: {
   title: string;
   hint?: string;
@@ -52,8 +53,11 @@ export function SubTableEditor<T>({
   fields: FieldDef[];
   display: { key: string; header: string; render: (row: T) => React.ReactNode }[];
   emptyLabel?: string;
+  canManage?: boolean;
 }) {
   const permissions = rolePermissions(useRole());
+  // ponytail: canManage lets a company editor manage its own firm's rows; defaults to Admin-only.
+  const allowed = canManage ?? permissions.canEdit;
   const [editing, setEditing] = useState<T | null>(null);
   const [creating, setCreating] = useState(false);
 
@@ -172,7 +176,7 @@ export function SubTableEditor<T>({
           <strong className="subtable-editor__title">{title}</strong>
           {hint && <div className="subtable-editor__hint">{hint}</div>}
         </div>
-        {permissions.canEdit ? (
+        {allowed ? (
           <Button className="subtable-editor__add" variant="secondary" onClick={() => setCreating(true)} style={{ padding: "4px 10px", fontSize: 12 }}>
             Add {title}
           </Button>
@@ -190,9 +194,9 @@ export function SubTableEditor<T>({
             key: "_actions",
             header: "",
             render: (row: T) => (
-              permissions.canEdit || permissions.canDelete ? (
+              allowed ? (
                 <span className="subtable-editor__row-actions">
-                  {permissions.canEdit && (
+                  {allowed && (
                     <Button
                       variant="ghost"
                       onClick={() => setEditing(row)}
@@ -201,7 +205,7 @@ export function SubTableEditor<T>({
                       Edit
                     </Button>
                   )}
-                  {permissions.canDelete && (
+                  {allowed && (
                     <Button
                       variant="ghost"
                       onClick={() => onDelete(row)}
@@ -300,7 +304,7 @@ function RowModal({
             )}
             {f.type === "enum" && (
               <Select value={String(form[f.name] ?? "")} onChange={(e) => update(f.name, e.target.value)}>
-                <option value="">â€”</option>
+                <option value="">—</option>
                 {f.options.map((o) => (
                   <option key={o} value={o}>
                     {o}

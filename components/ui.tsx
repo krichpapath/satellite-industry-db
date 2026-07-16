@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React from "react";
 import { useRole } from "@/lib/store";
@@ -18,7 +18,7 @@ import {
 import { Textarea as ShadTextarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
-export function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+export function Card({ children, className = "", style }: { children: React.ReactNode; className?: string; style?: React.CSSProperties }) {
   return (
     <ShadCard
       className={cn("satdb-card", className)}
@@ -28,7 +28,8 @@ export function Card({ children, className = "" }: { children: React.ReactNode; 
         border: "1px solid var(--line)",
         borderRadius: 14,
         padding: 20,
-        boxShadow: "var(--shadow)"
+        boxShadow: "var(--shadow)",
+        ...style
       }}
     >
       {children}
@@ -299,10 +300,14 @@ export function Field({
 
 export function Badge({
   children,
-  tone = "neutral"
+  tone = "neutral",
+  className = "",
+  style
 }: {
   children: React.ReactNode;
   tone?: "neutral" | "accent" | "warn" | "danger" | "success";
+  className?: string;
+  style?: React.CSSProperties;
 }) {
   const tones: Record<string, React.CSSProperties> = {
     neutral: { background: "var(--surface-muted)", color: "var(--ink-soft)" },
@@ -314,19 +319,24 @@ export function Badge({
   return (
     <ShadBadge
       variant={tone === "danger" ? "destructive" : tone === "neutral" ? "secondary" : "outline"}
-      className="satdb-badge"
+      className={cn("satdb-badge", className)}
       style={{
         display: "inline-block",
         padding: "3px 10px",
         borderRadius: 999,
         fontSize: 12,
         fontWeight: 500,
-        ...tones[tone]
+        ...tones[tone],
+        ...style
       }}
     >
       {children}
     </ShadBadge>
   );
+}
+
+export function ownershipTone(type: string): "success" | "accent" | "warn" | "neutral" {
+  return type === "Local" ? "success" : type === "Foreign" ? "accent" : type === "JV" ? "warn" : "neutral";
 }
 
 export function Stat({ label, value, hint, className = "", accent }: { label: string; value: React.ReactNode; hint?: string; className?: string; accent?: string }) {
@@ -611,7 +621,7 @@ export function Heatmap({
                 return (
                   <td
                     key={c}
-                    title={cell.tooltip ?? `${r} Ã— ${c}: ${cell.value}`}
+                    title={cell.tooltip ?? `${r} × ${c}: ${cell.value}`}
                     onClick={onCellClick ? () => onCellClick(r, c, cell.value) : undefined}
                     style={{
                       width: 90,
@@ -626,7 +636,7 @@ export function Heatmap({
                       verticalAlign: "middle"
                     }}
                   >
-                    {cell.value === 0 ? "â€”" : cell.value.toFixed(0)}
+                    {cell.value === 0 ? "—" : cell.value.toFixed(0)}
                   </td>
                 );
               })}

@@ -1,14 +1,11 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
 import { motion } from "framer-motion";
 import {
-  ArrowUpDown,
   Bold,
   CircleHelp,
-  ChevronDown,
-  ChevronRight,
   Compass,
   Cpu,
   Flame,
@@ -20,6 +17,7 @@ import {
   Indent,
   Pencil,
   Radio,
+  Rocket,
   RotateCcw,
   RotateCw,
   Search,
@@ -31,7 +29,7 @@ import {
   Zap
 } from "lucide-react";
 import { commit, loadDb, nextId, useRole } from "@/lib/store";
-import { rolePermissions, type ProductService } from "@/lib/schema";
+import { rolePermissions, type ProductService, type RecordState } from "@/lib/schema";
 import {
   COMPONENT_SYSTEMS,
   UNIDENTIFIED_VALUE,
@@ -44,7 +42,7 @@ import { richTextToPlainText, sanitizeRichText } from "@/lib/rich-text";
 import { Badge, Button, EmptyState, Field, Input, Modal, Select, Textarea } from "./ui";
 
 type ComponentForm = ProductService;
-type ComponentSortKey = "product_name" | "system" | "module" | "component_name" | "product_trl" | "description";
+type SortMode = "name:asc" | "name:desc" | "trl:desc" | "trl:asc" | "newest";
 type SystemKind = "payload" | "eps" | "adcs" | "cdh" | "ttc" | "stcs" | "propulsion" | "unknown";
 
 const SYSTEM_VISUALS: Record<SystemKind, {
@@ -74,7 +72,7 @@ function systemKind(system: string): SystemKind {
   return "unknown";
 }
 
-function SystemPill({
+export function SystemPill({
   system,
   compact = false
 }: {
@@ -133,7 +131,8 @@ function blankComponent(firmId: string): ComponentForm {
     component_name: "",
     product_trl: "Unidentified",
     flight_heritage: "",
-    description: ""
+    description: "",
+    record_state: "public"
   };
 }
 
@@ -151,7 +150,8 @@ function normalizeComponentRow(row: ComponentForm): ComponentForm {
     component_name: componentName,
     product_trl: row.product_trl,
     flight_heritage: row.flight_heritage?.trim() || undefined,
-    description: sanitizeRichText(row.description)
+    description: sanitizeRichText(row.description),
+    record_state: row.record_state ?? "public"
   };
 }
 
@@ -167,42 +167,24 @@ function validateComponent(row: ComponentForm): string | null {
   return null;
 }
 
-function RichDescriptionPreview({ html }: { html?: string }) {
+function CardDescription({ html }: { html?: string }) {
+  const [open, setOpen] = useState(false);
   const safe = sanitizeRichText(html);
-  if (!safe) return <span style={{ color: "var(--muted)" }}>No description</span>;
+  if (!safe) return <div className="catalog-card__description catalog-card__description--empty">No description</div>;
+  // ponytail: plain-text length heuristic instead of measuring rendered height.
+  const long = richTextToPlainText(html).length > 220;
   return (
-    <div
-      className="rich-preview rich-description-preview"
-      dangerouslySetInnerHTML={{ __html: safe }}
-    />
-  );
-}
-
-function SortHead({
-  label,
-  column,
-  active,
-  direction,
-  onSort
-}: {
-  label: string;
-  column: ComponentSortKey;
-  active: ComponentSortKey;
-  direction: "asc" | "desc";
-  onSort: (column: ComponentSortKey) => void;
-}) {
-  return (
-    <button
-      type="button"
-      className="component-table__sort"
-      onClick={() => onSort(column)}
-      aria-label={`Sort components by ${label}`}
-    >
-      <span>{label}</span>
-      <span aria-hidden="true" className="component-table__sort-icon">
-        {active === column ? (direction === "asc" ? "↑" : "↓") : <ArrowUpDown size={13} />}
-      </span>
-    </button>
+    <div>
+      <div
+        className={`rich-preview catalog-card__description${long && !open ? " is-clamped" : ""}`}
+        dangerouslySetInnerHTML={{ __html: safe }}
+      />
+      {long && (
+        <button type="button" className="catalog-card__more" onClick={() => setOpen((v) => !v)}>
+          {open ? "Show less" : "Show full description"}
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -477,6 +459,15 @@ function ComponentRecordEditor({
                 rows={3}
               />
             </Field>
+            <Field label="State" helper="Draft stays in this company workspace. Public appears to other companies.">
+              <Select
+                value={form.record_state ?? "public"}
+                onChange={(event) => update({ record_state: event.target.value as RecordState })}
+              >
+                <option value="draft">Draft</option>
+                <option value="public">Public</option>
+              </Select>
+            </Field>
           </motion.div>
 
           <motion.div variants={fadeIn}>
@@ -497,33 +488,23 @@ function ComponentRecordEditor({
 
 export function ComponentRecordsPanel({
   rows,
-  firmId
+  firmId,
+  canManage
 }: {
   rows: ProductService[];
   firmId: string;
+  canManage?: boolean;
 }) {
   const role = useRole();
   const permissions = rolePermissions(role);
+  const canEditRows = canManage ?? permissions.canEdit;
+
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<ProductService | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortColumn, setSortColumn] = useState<ComponentSortKey>("product_name");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
-  const [expandedRows, setExpandedRows] = useState<Set<string>>(() => new Set());
+  const [sortMode, setSortMode] = useState<SortMode>("name:asc");
 
-  const grouped = useMemo(() => {
-    const map: Record<string, Record<string, ProductService[]>> = {};
-    for (const row of rows) {
-      const system = normalizeSystem(row.system);
-      const module = row.module || UNIDENTIFIED_VALUE;
-      if (!map[system]) map[system] = {};
-      if (!map[system][module]) map[system][module] = [];
-      map[system][module].push(row);
-    }
-    return map;
-  }, [rows]);
-
-  const visibleRows = useMemo(() => {
+  const groups = useMemo(() => {
     const needle = searchTerm.trim().toLowerCase();
     const filtered = needle
       ? rows.filter((row) =>
@@ -534,42 +515,44 @@ export function ComponentRecordsPanel({
             row.module,
             row.component_name,
             formatProductTrl(row.product_trl),
+            row.record_state ?? "public",
             row.flight_heritage,
             richTextToPlainText(row.description)
           ].some((value) => String(value ?? "").toLowerCase().includes(needle))
         )
       : rows;
 
-    return [...filtered].sort((a, b) => {
-      const aValue = sortColumn === "description" ? richTextToPlainText(a.description) : sortColumn === "product_trl" ? formatProductTrl(a.product_trl) : a[sortColumn];
-      const bValue = sortColumn === "description" ? richTextToPlainText(b.description) : sortColumn === "product_trl" ? formatProductTrl(b.product_trl) : b[sortColumn];
-      const result = String(aValue ?? "").localeCompare(String(bValue ?? ""), undefined, { sensitivity: "base" });
-      return sortDirection === "asc" ? result : -result;
+    const trlNum = (r: ProductService) => (typeof r.product_trl === "number" ? r.product_trl : -1);
+    const idNum = (r: ProductService) => Number(r.product_id.replace(/\D+/g, "")) || 0;
+    const sorted = [...filtered].sort((a, b) => {
+      switch (sortMode) {
+        case "name:desc":
+          return alphaCompare(componentRowLabel(b), componentRowLabel(a));
+        case "trl:desc":
+          return trlNum(b) - trlNum(a) || alphaCompare(componentRowLabel(a), componentRowLabel(b));
+        case "trl:asc":
+          return trlNum(a) - trlNum(b) || alphaCompare(componentRowLabel(a), componentRowLabel(b));
+        case "newest":
+          return idNum(b) - idNum(a);
+        default:
+          return alphaCompare(componentRowLabel(a), componentRowLabel(b));
+      }
     });
-  }, [rows, searchTerm, sortColumn, sortDirection]);
 
-  function sortBy(column: ComponentSortKey) {
-    if (sortColumn === column) {
-      setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
-      return;
+    const map = new Map<string, ProductService[]>();
+    for (const row of sorted) {
+      const system = normalizeSystem(row.system);
+      map.set(system, [...(map.get(system) ?? []), row]);
     }
-    setSortColumn(column);
-    setSortDirection("asc");
-  }
+    return [...map.entries()].sort(([a], [b]) => alphaCompare(a, b));
+  }, [rows, searchTerm, sortMode]);
 
-  function toggleRow(productId: string) {
-    setExpandedRows((current) => {
-      const next = new Set(current);
-      if (next.has(productId)) next.delete(productId);
-      else next.add(productId);
-      return next;
-    });
-  }
+  const visibleCount = groups.reduce((sum, [, groupRows]) => sum + groupRows.length, 0);
 
   function create(row: ComponentForm) {
     const db = loadDb();
     const id = nextId("P", db.products as unknown as Record<string, unknown>[], "product_id");
-    const saved = { ...row, product_id: id, firm_id: firmId };
+    const saved = { ...row, product_id: id, firm_id: firmId, record_state: row.record_state ?? "public" };
     commit({ action: "create", table: "products", id, summary: `Added component ${row.product_name}`, firmId }, (d) => {
       d.products.push(saved);
     });
@@ -578,16 +561,23 @@ export function ComponentRecordsPanel({
 
   function update(row: ComponentForm) {
     commit({ action: "update", table: "products", id: row.product_id, summary: `Updated component ${row.product_name}`, firmId }, (d) => {
-      const index = d.products.findIndex((component) => component.product_id === row.product_id);
-      if (index >= 0) d.products[index] = { ...row, firm_id: firmId };
+      const index = d.products.findIndex((component) => component.product_id === row.product_id && component.firm_id === firmId);
+      if (index >= 0) d.products[index] = { ...row, firm_id: firmId, record_state: row.record_state ?? "public" };
     });
     setEditing(null);
+  }
+
+  function setRecordState(row: ProductService, recordState: RecordState) {
+    commit({ action: "update", table: "products", id: row.product_id, summary: `Set component ${row.product_name} ${recordState}`, firmId }, (d) => {
+      const index = d.products.findIndex((component) => component.product_id === row.product_id && component.firm_id === firmId);
+      if (index >= 0) d.products[index] = { ...d.products[index], record_state: recordState };
+    });
   }
 
   function remove(row: ProductService) {
     if (!confirm(`Delete component ${row.product_name || row.product_id}?`)) return;
     commit({ action: "delete", table: "products", id: row.product_id, summary: `Deleted component ${row.product_name}`, firmId }, (d) => {
-      const index = d.products.findIndex((component) => component.product_id === row.product_id);
+      const index = d.products.findIndex((component) => component.product_id === row.product_id && component.firm_id === firmId);
       if (index >= 0) d.products.splice(index, 1);
     });
   }
@@ -597,7 +587,7 @@ export function ComponentRecordsPanel({
       <div className="component-table-card">
         <div className="component-table-card__bar">
           <span className="component-table-card__count">
-            {visibleRows.length} of {rows.length} record{rows.length === 1 ? "" : "s"}
+            {visibleCount} of {rows.length} record{rows.length === 1 ? "" : "s"}
           </span>
           <div className="component-table-card__actions">
             <label className="component-table-card__search">
@@ -611,26 +601,21 @@ export function ComponentRecordsPanel({
                 style={{ borderWidth: 0, boxShadow: "none", paddingLeft: 4, minWidth: 220 }}
               />
             </label>
-            <label className="component-table-card__mobile-sort">
-              <span>Sort</span>
+            <div className="catalog-sort">
               <Select
-                value={`${sortColumn}:${sortDirection}`}
-                onChange={(event) => {
-                  const [column, direction] = event.target.value.split(":") as [ComponentSortKey, "asc" | "desc"];
-                  setSortColumn(column);
-                  setSortDirection(direction);
-                }}
+                value={sortMode}
+                onChange={(event) => setSortMode(event.target.value as SortMode)}
+                aria-label="Sort components"
+                style={{ minHeight: 40 }}
               >
-                <option value="product_name:asc">Product A-Z</option>
-                <option value="product_name:desc">Product Z-A</option>
-                <option value="system:asc">System A-Z</option>
-                <option value="module:asc">Module A-Z</option>
-                <option value="component_name:asc">Component A-Z</option>
-                <option value="product_trl:asc">TRL 1-9</option>
-                <option value="description:asc">Description A-Z</option>
+                <option value="name:asc">Name A-Z</option>
+                <option value="name:desc">Name Z-A</option>
+                <option value="trl:desc">TRL high to low</option>
+                <option value="trl:asc">TRL low to high</option>
+                <option value="newest">Newest first</option>
               </Select>
-            </label>
-            {permissions.canAddComponent ? (
+            </div>
+            {canEditRows ? (
               <Button onClick={() => setCreating(true)} style={{ minHeight: 40 }}>
                 Add component
               </Button>
@@ -641,173 +626,89 @@ export function ComponentRecordsPanel({
         </div>
 
         {rows.length === 0 ? (
-          <EmptyState message={permissions.canAddComponent ? "Add a component with a product name, taxonomy path, and description." : "No component records yet."} />
-        ) : visibleRows.length === 0 ? (
+          <EmptyState message={canEditRows ? "Add a component with a product name, taxonomy path, and description." : "No component records yet."} />
+        ) : visibleCount === 0 ? (
           <EmptyState message="No component records match your search." />
         ) : (
-          <>
-            <div className="component-table-wrap">
-              <table className="component-table">
-                <thead>
-                  <tr>
-                    <th className="component-table__product-column">
-                      <SortHead label="Product" column="product_name" active={sortColumn} direction={sortDirection} onSort={sortBy} />
-                    </th>
-                    <th className="component-table__classification-column">
-                      <SortHead label="Classification" column="system" active={sortColumn} direction={sortDirection} onSort={sortBy} />
-                    </th>
-                    <th className="component-table__trl-column">
-                      <SortHead label="TRL" column="product_trl" active={sortColumn} direction={sortDirection} onSort={sortBy} />
-                    </th>
-                    {(permissions.canEdit || permissions.canDelete) && <th className="component-table__actions-column">Actions</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {visibleRows.map((row) => {
-                    const expanded = expandedRows.has(row.product_id);
-                    const columnCount = permissions.canEdit || permissions.canDelete ? 4 : 3;
+          <div className="catalog-body">
+            {groups.map(([system, groupRows]) => (
+              <section key={system} className="catalog-section" aria-label={`${system} components`}>
+                <div className="catalog-section__header">
+                  <SystemIconMark system={system} />
+                  <h3>{system}</h3>
+                  <span>{groupRows.length} component{groupRows.length === 1 ? "" : "s"}</span>
+                </div>
+                <div className="catalog-grid">
+                  {groupRows.map((row) => {
+                    const label = row.product_name || row.component_name;
+                    const isPublic = (row.record_state ?? "public") === "public";
                     return (
-                      <Fragment key={row.product_id}>
-                        <tr data-expanded={expanded ? "true" : "false"}>
-                          <td className="component-table__product">
-                            <div className="component-table__product-cell">
-                              <button
-                                type="button"
-                                className="component-table__expand"
-                                aria-label={`${expanded ? "Hide" : "Show"} details for ${row.product_name || row.component_name}`}
-                                aria-expanded={expanded}
-                                onClick={() => toggleRow(row.product_id)}
+                      <article key={row.product_id} className="catalog-card" data-state={isPublic ? "public" : "draft"}>
+                        <div className="catalog-card__head">
+                          <div className="catalog-card__title">
+                            <strong>{label}</strong>
+                            <div className="catalog-card__path">{row.module} › {row.component_name}</div>
+                          </div>
+                          <code className="catalog-card__id">{row.product_id}</code>
+                        </div>
+                        <div className="catalog-card__badges">
+                          <Badge tone={typeof row.product_trl === "number" ? "accent" : "warn"}>
+                            TRL {formatProductTrl(row.product_trl)}
+                          </Badge>
+                          {canEditRows ? (
+                            <div style={{ width: 112 }}>
+                              <Select
+                                value={row.record_state ?? "public"}
+                                onChange={(event) => setRecordState(row, event.target.value as RecordState)}
+                                aria-label={`State for ${label}`}
+                                style={{ minHeight: 32, padding: "4px 10px", fontSize: 12 }}
                               >
-                                {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                              </button>
-                              <div>
-                                <strong>{row.product_name || row.component_name}</strong>
-                                <code>{row.product_id}</code>
-                              </div>
+                                <option value="draft">Draft</option>
+                                <option value="public">Public</option>
+                              </Select>
                             </div>
-                          </td>
-                          <td>
-                            <div className="component-table__classification">
-                              <SystemPill system={row.system} />
-                              <span>{row.module}</span>
-                              <small>{row.component_name}</small>
-                            </div>
-                          </td>
-                          <td className="component-table__trl">
-                            <span
-                              className="component-trl"
-                              data-known={row.product_trl === "Unidentified" || row.product_trl === undefined ? "false" : "true"}
-                            >
-                              TRL {formatProductTrl(row.product_trl)}
-                            </span>
-                          </td>
-                          {(permissions.canEdit || permissions.canDelete) && (
-                            <td>
-                              <div className="component-table__actions">
-                                {permissions.canEdit && (
-                                  <Button
-                                    variant="secondary"
-                                    onClick={() => setEditing(row)}
-                                    ariaLabel={`Edit ${row.product_name || row.component_name}`}
-                                    title="Edit component"
-                                    style={{ minHeight: 36, padding: "7px 10px" }}
-                                  >
-                                    <Pencil size={15} />
-                                    Edit
-                                  </Button>
-                                )}
-                                {permissions.canDelete && (
-                                  <Button
-                                    variant="ghost"
-                                    onClick={() => remove(row)}
-                                    ariaLabel={`Delete ${row.product_name || row.component_name}`}
-                                    title="Delete component"
-                                    style={{ minHeight: 36, padding: 8, color: "var(--danger)" }}
-                                  >
-                                    <Trash2 size={15} />
-                                  </Button>
-                                )}
-                              </div>
-                            </td>
+                          ) : (
+                            <Badge tone={isPublic ? "success" : "warn"}>{isPublic ? "Public" : "Draft"}</Badge>
                           )}
-                        </tr>
-                        {expanded && (
-                          <tr className="component-table__details-row">
-                            <td colSpan={columnCount}>
-                              <div className="component-table__details-grid">
-                                <section>
-                                  <span>Description</span>
-                                  <RichDescriptionPreview html={row.description} />
-                                </section>
-                                <section>
-                                  <span>Flight heritage</span>
-                                  <p>{row.flight_heritage || "No flight heritage recorded."}</p>
-                                </section>
-                              </div>
-                            </td>
-                          </tr>
+                        </div>
+                        {row.flight_heritage && (
+                          <div className="catalog-card__heritage">
+                            <Rocket size={13} aria-hidden="true" />
+                            <span>{row.flight_heritage}</span>
+                          </div>
                         )}
-                      </Fragment>
+                        <CardDescription html={row.description} />
+                        {canEditRows && (
+                          <div className="catalog-card__actions">
+                            <Button
+                              variant="secondary"
+                              onClick={() => setEditing(row)}
+                              ariaLabel={`Edit ${label}`}
+                              title="Edit component"
+                              style={{ minHeight: 36, padding: "7px 12px" }}
+                            >
+                              <Pencil size={14} />
+                              Edit
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              onClick={() => remove(row)}
+                              ariaLabel={`Delete ${label}`}
+                              title="Delete component"
+                              style={{ minHeight: 36, padding: "7px 10px", color: "var(--danger)" }}
+                            >
+                              <Trash2 size={14} />
+                              Delete
+                            </Button>
+                          </div>
+                        )}
+                      </article>
                     );
                   })}
-                </tbody>
-              </table>
-            </div>
-            <div className="component-record-list" aria-label="Component records">
-              {visibleRows.map((row) => (
-                <article key={row.product_id} className="component-record-card">
-                  <div className="component-record-card__title">{row.product_name || row.component_name}</div>
-                  <div className="component-record-card__meta">
-                    <code>{row.product_id}</code>
-                    <SystemPill system={row.system} compact />
-                  </div>
-                  <div className="component-record-card__path">
-                    <Badge>{row.module}</Badge>
-                    <Badge>{row.component_name}</Badge>
-                    <Badge tone={row.product_trl === "Unidentified" || row.product_trl === undefined ? "warn" : "accent"}>
-                      TRL {formatProductTrl(row.product_trl)}
-                    </Badge>
-                  </div>
-                  {row.flight_heritage && (
-                    <div className="component-record-card__heritage">
-                      <strong>Flight heritage</strong>
-                      <span>{row.flight_heritage}</span>
-                    </div>
-                  )}
-                  <div className="component-record-card__description">
-                    <RichDescriptionPreview html={row.description} />
-                  </div>
-                  {(permissions.canEdit || permissions.canDelete) && (
-                    <div className="component-record-card__actions">
-                      {permissions.canEdit && (
-                        <Button
-                          variant="secondary"
-                          onClick={() => setEditing(row)}
-                          ariaLabel={`Edit ${row.product_name || row.component_name}`}
-                          title="Edit component"
-                        >
-                          <Pencil size={16} />
-                          Edit
-                        </Button>
-                      )}
-                      {permissions.canDelete && (
-                        <Button
-                          variant="ghost"
-                          onClick={() => remove(row)}
-                          ariaLabel={`Delete ${row.product_name || row.component_name}`}
-                          title="Delete component"
-                          style={{ color: "var(--danger)" }}
-                        >
-                          <Trash2 size={16} />
-                          Delete
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </article>
-              ))}
-            </div>
-          </>
+                </div>
+              </section>
+            ))}
+          </div>
         )}
       </div>
 
@@ -828,55 +729,6 @@ export function ComponentRecordsPanel({
         />
       )}
 
-      {rows.length > 0 && (
-        <div className="component-summary-list">
-          <div className="component-summary-intro">
-            <h3>System coverage</h3>
-            <p>Components grouped by satellite system and module.</p>
-          </div>
-          {Object.entries(grouped).sort(([a], [b]) => alphaCompare(a, b)).map(([system, modules]) => {
-            const systemRows = Object.values(modules).flat();
-            return (
-              <section key={system} className="component-summary-section">
-                <div className="component-summary-section__header">
-                  <div className="component-summary-heading">
-                    <SystemIconMark system={system} />
-                    <span>{system}</span>
-                  </div>
-                  <div className="component-summary-section__counts">
-                    <div className="component-summary-metric">
-                      <strong>{systemRows.length}</strong>
-                      <span>component{systemRows.length === 1 ? "" : "s"}</span>
-                    </div>
-                    <div className="component-summary-metric">
-                      <strong>{Object.keys(modules).length}</strong>
-                      <span>module{Object.keys(modules).length === 1 ? "" : "s"}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="component-summary-section__body">
-                  {Object.entries(modules).sort(([a], [b]) => alphaCompare(a, b)).map(([module, moduleRows]) => (
-                    <div key={module} className="component-summary-module">
-                      <div className="component-summary-module__title">{module}</div>
-                      <div className="component-summary-module__rows">
-                        {[...moduleRows].sort((a, b) => alphaCompare(componentRowLabel(a), componentRowLabel(b))).map((row) => (
-                          <div key={row.product_id} className="component-summary-row">
-                            <div className="component-summary-row__main">
-                              <div className="component-summary-row__name">{row.product_name || row.component_name}</div>
-                              <div className="component-summary-row__component">{row.component_name}</div>
-                            </div>
-                            <div className="component-summary-row__description">{richTextToPlainText(row.description).slice(0, 180) || "No description"}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }

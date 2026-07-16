@@ -1,15 +1,18 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Link from "next/link";
+import { CloudDownload, CloudUpload, FileSpreadsheet, RefreshCw, ScrollText } from "lucide-react";
 import {
   useDatabase,
-  resetDb,
   exportJson,
   importJson,
   loadDb,
   commit,
-  nextId
+  syncDatasetFromApi,
+  useSyncStatus
 } from "@/lib/store";
+import { apiConfigured } from "@/lib/api";
 import {
   Card,
   SectionTitle,
@@ -18,7 +21,6 @@ import {
   Badge,
   Grid,
   Stat,
-  EmptyState,
   RequireRole,
   LockedNote,
   Select,
@@ -28,8 +30,9 @@ import {
 import { csvToObjects } from "@/lib/csv";
 import type { Database } from "@/lib/schema";
 import { createAllComponentsXlsx } from "@/lib/component-xlsx";
+import { createDatabaseXlsx } from "@/lib/db-xlsx";
 
-type Tab = "json" | "csv" | "danger";
+type Tab = "json" | "csv";
 
 const CSV_TARGETS: { key: keyof Database; label: string; idField: string; idPrefix: string; columns: string[] }[] = [
   {
@@ -87,17 +90,41 @@ const BOOL_FIELDS = new Set([
   "waste_management_system"
 ]);
 
+function downloadBlob(bytes: BlobPart, type: string, filename: string) {
+  const blob = new Blob([bytes], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 export default function AdminPage() {
   const db = useDatabase();
+  const sync = useSyncStatus();
   const [tab, setTab] = useState<Tab>("json");
   const [jsonText, setJsonText] = useState("");
   const [csvText, setCsvText] = useState("");
   const [csvTarget, setCsvTarget] = useState<keyof Database>("firms");
   const [csvPreview, setCsvPreview] = useState<Record<string, string>[] | null>(null);
+  const [csvWarning, setCsvWarning] = useState<string | null>(null);
   const [status, setStatus] = useState<{ kind: "ok" | "err"; msg: string } | null>(null);
-  const [componentExportStatus, setComponentExportStatus] = useState<{ kind: "ok" | "err"; msg: string } | null>(null);
-  const [exportingComponents, setExportingComponents] = useState(false);
+  const [exportStatus, setExportStatus] = useState<{ kind: "ok" | "err"; msg: string } | null>(null);
+  const [exporting, setExporting] = useState<"components" | "database" | null>(null);
+  const [syncing, setSyncing] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  async function syncNow() {
+    setSyncing(true);
+    try {
+      await syncDatasetFromApi(true);
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   function doExport() {
     setJsonText(exportJson());
@@ -105,48 +132,37 @@ export default function AdminPage() {
   }
 
   function doDownload() {
-    const text = exportJson();
-    const blob = new Blob([text], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `satdb-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    downloadBlob(exportJson(), "application/json", `satdb-${new Date().toISOString().slice(0, 10)}.json`);
     setStatus({ kind: "ok", msg: "Downloaded JSON file." });
   }
 
   function doImport() {
+    if (!confirm("Replace the ENTIRE database with this JSON? Current data will be overwritten.")) return;
     const res = importJson(jsonText);
     setStatus(res.ok ? { kind: "ok", msg: "Database replaced from JSON." } : { kind: "err", msg: res.error ?? "Import failed." });
   }
 
-  async function downloadAllComponents() {
-    setExportingComponents(true);
-    setComponentExportStatus(null);
+  async function runExport(kind: "components" | "database") {
+    setExporting(kind);
+    setExportStatus(null);
     try {
-      const bytes = await createAllComponentsXlsx(db);
-      const blob = new Blob([bytes], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      const bytes = kind === "components" ? await createAllComponentsXlsx(db) : await createDatabaseXlsx(db);
+      const date = new Date().toISOString().slice(0, 10);
+      downloadBlob(
+        bytes,
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        kind === "components" ? `satdb-all-components-${date}.xlsx` : `satdb-full-database-${date}.xlsx`
+      );
+      setExportStatus({
+        kind: "ok",
+        msg: kind === "components"
+          ? `Downloaded ${db.products.length} component row(s).`
+          : `Downloaded full database (${db.firms.length} companies, 11 sheets incl. audit log).`
       });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `satdb-all-components-${new Date().toISOString().slice(0, 10)}.xlsx`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-      setComponentExportStatus({ kind: "ok", msg: `Downloaded ${db.products.length} component row(s).` });
     } catch (error) {
-      setComponentExportStatus({
-        kind: "err",
-        msg: error instanceof Error ? error.message : "Component export failed."
-      });
+      setExportStatus({ kind: "err", msg: error instanceof Error ? error.message : "Export failed." });
     } finally {
-      setExportingComponents(false);
+      setExporting(null);
     }
   }
 
@@ -155,22 +171,41 @@ export default function AdminPage() {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      const text = reader.result as string;
-      setJsonText(text);
-      const res = importJson(text);
-      setStatus(res.ok ? { kind: "ok", msg: `Imported ${file.name}.` } : { kind: "err", msg: res.error ?? "Import failed." });
+      setJsonText(reader.result as string);
+      setStatus({ kind: "ok", msg: `Loaded ${file.name}. Review, then click Import JSON.` });
     };
     reader.readAsText(file);
+    e.target.value = "";
   }
 
   function previewCsv() {
+    setCsvWarning(null);
     try {
       const rows = csvToObjects(csvText);
       if (rows.length === 0) {
         setStatus({ kind: "err", msg: "No rows parsed." });
         return;
       }
+      const target = CSV_TARGETS.find((t) => t.key === csvTarget)!;
+
+      const known = new Set(target.columns);
+      const unknown = Object.keys(rows[0]).filter((key) => !known.has(key));
+
+      if (target.columns.includes("firm_id")) {
+        const firmIds = new Set(db.firms.map((firm) => firm.firm_id));
+        const bad = rows.filter((row) => !firmIds.has(row.firm_id ?? ""));
+        if (bad.length > 0) {
+          const examples = Array.from(new Set(bad.map((row) => row.firm_id || "(empty)"))).slice(0, 5).join(", ");
+          setCsvPreview(null);
+          setStatus({ kind: "err", msg: `${bad.length} row(s) reference unknown firm_id: ${examples}. Fix the CSV and preview again.` });
+          return;
+        }
+      }
+
       setCsvPreview(rows);
+      if (unknown.length > 0) {
+        setCsvWarning(`Ignored unknown column(s): ${unknown.join(", ")}. Expected: ${target.columns.join(", ")}.`);
+      }
       setStatus({ kind: "ok", msg: `Parsed ${rows.length} row(s).` });
     } catch (e) {
       setStatus({ kind: "err", msg: (e as Error).message });
@@ -212,34 +247,8 @@ export default function AdminPage() {
     );
     setStatus({ kind: "ok", msg: `Imported ${csvPreview.length} row(s) into ${target.label}.` });
     setCsvPreview(null);
+    setCsvWarning(null);
     setCsvText("");
-  }
-
-  function doReset() {
-    if (!confirm("Reset to seed data? All edits will be lost.")) return;
-    resetDb();
-    setJsonText("");
-    setStatus({ kind: "ok", msg: "Database reset to seed." });
-  }
-
-  function clearAll() {
-    if (!confirm("Wipe ALL data? Cannot be undone (use seed to restore).")) return;
-    commit(
-      { action: "wipe", table: "*", id: "*", summary: "All records wiped" },
-      (d) => {
-        d.firms = [];
-        d.size_finance = [];
-        d.products = [];
-        d.tech = [];
-        d.facilities = [];
-        d.hr = [];
-        d.linkages = [];
-        d.collabs = [];
-        d.esg = [];
-        d.sources = [];
-      }
-    );
-    setStatus({ kind: "ok", msg: "All records cleared." });
   }
 
   const rowCounts: [string, number][] = [
@@ -258,6 +267,7 @@ export default function AdminPage() {
 
   const target = CSV_TARGETS.find((t) => t.key === csvTarget)!;
   const csvTemplate = target.columns.join(",") + "\n";
+  const recentAudit = db.audit.slice(0, 8);
 
   return (
     <RequireRole min="Admin" fallback={<LockedNote min="Admin" />}>
@@ -265,9 +275,48 @@ export default function AdminPage() {
         <header>
           <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600 }}>Admin / Data Management</h1>
           <div style={{ color: "var(--muted)", marginTop: 6, fontSize: 14 }}>
-            Access-controlled data interface for backup, restore, bulk import, and reset.
+            Access-controlled data interface for sync, backup, restore, bulk import, and exports.
           </div>
         </header>
+
+        <Card>
+          <SectionTitle hint="State of the remote dataset API and the last local write.">
+            Sync &amp; Storage
+          </SectionTitle>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <Badge tone={apiConfigured() ? "success" : "warn"}>
+              {apiConfigured() ? "API configured" : "API not configured — local storage only"}
+            </Badge>
+            {sync.lastSync && (
+              <Badge tone={sync.lastSync.result.ok ? "success" : "danger"}>
+                <CloudDownload size={12} style={{ marginRight: 4, verticalAlign: -2 }} />
+                {sync.lastSync.result.ok
+                  ? `Last sync ${new Date(sync.lastSync.ts).toLocaleTimeString()}: ${sync.lastSync.result.count} companies`
+                  : `Sync failed ${new Date(sync.lastSync.ts).toLocaleTimeString()}: ${sync.lastSync.result.reason}`}
+              </Badge>
+            )}
+            {sync.saving && <Badge tone="accent">Saving to API…</Badge>}
+            {!sync.saving && sync.lastSave && (
+              <Badge tone={sync.lastSave.ok ? "success" : "danger"}>
+                <CloudUpload size={12} style={{ marginRight: 4, verticalAlign: -2 }} />
+                {sync.lastSave.ok
+                  ? `Last save ${new Date(sync.lastSave.ts).toLocaleTimeString()} OK`
+                  : `SAVE FAILED ${new Date(sync.lastSave.ts).toLocaleTimeString()}: ${sync.lastSave.error}`}
+              </Badge>
+            )}
+            {apiConfigured() && (
+              <Button variant="secondary" onClick={syncNow} disabled={syncing}>
+                <RefreshCw size={14} />
+                {syncing ? "Syncing…" : "Sync now"}
+              </Button>
+            )}
+          </div>
+          {!sync.saving && sync.lastSave && !sync.lastSave.ok && (
+            <div style={{ marginTop: 10, fontSize: 13, color: "var(--danger)" }}>
+              The last change was NOT saved to the remote database. It is still in this browser — retry by making any edit, or check the API.
+            </div>
+          )}
+        </Card>
 
         <Card>
           <SectionTitle>Record counts (live)</SectionTitle>
@@ -279,29 +328,30 @@ export default function AdminPage() {
         </Card>
 
         <Card>
-          <SectionTitle hint="One Excel worksheet containing components from every company.">
-            Component Export
+          <SectionTitle hint="Full database: one worksheet per table plus the audit log. Components: flat single-sheet list.">
+            Exports (.xlsx)
           </SectionTitle>
           <div className="admin-action-row" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <Button
-              onClick={downloadAllComponents}
-              disabled={db.products.length === 0 || exportingComponents}
-            >
-              {exportingComponents ? "Preparing Excel..." : "Download all components (.xlsx)"}
+            <Button onClick={() => runExport("database")} disabled={exporting !== null}>
+              <FileSpreadsheet size={15} />
+              {exporting === "database" ? "Preparing Excel…" : "Download full database"}
+            </Button>
+            <Button variant="secondary" onClick={() => runExport("components")} disabled={db.products.length === 0 || exporting !== null}>
+              {exporting === "components" ? "Preparing Excel…" : "Download all components"}
             </Button>
             <Badge tone="accent">{db.products.length} component{db.products.length === 1 ? "" : "s"}</Badge>
-            {componentExportStatus && (
-              <Badge tone={componentExportStatus.kind === "ok" ? "success" : "danger"}>
-                {componentExportStatus.msg}
+            {exportStatus && (
+              <Badge tone={exportStatus.kind === "ok" ? "success" : "danger"}>
+                {exportStatus.msg}
               </Badge>
             )}
           </div>
         </Card>
 
         <div className="admin-tab-row" style={{ display: "flex", gap: 6 }}>
-          {(["json", "csv", "danger"] as Tab[]).map((t) => (
+          {(["json", "csv"] as Tab[]).map((t) => (
             <Button key={t} variant={tab === t ? "primary" : "secondary"} onClick={() => setTab(t)}>
-              {t === "json" ? "JSON Backup" : t === "csv" ? "CSV Import (ETL)" : "Danger zone"}
+              {t === "json" ? "JSON Backup" : "CSV Import (ETL)"}
             </Button>
           ))}
         </div>
@@ -309,7 +359,7 @@ export default function AdminPage() {
         {tab === "json" && (
           <Card>
             <SectionTitle hint="Whole-database snapshot. Round-trip with the schema in lib/schema.ts.">
-              JSON Backup & Restore
+              JSON Backup &amp; Restore
             </SectionTitle>
             <div className="admin-action-row" style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
               <Button onClick={doExport}>Show current JSON</Button>
@@ -352,7 +402,7 @@ export default function AdminPage() {
             </SectionTitle>
             <Grid cols={2} gap={12} style={{ marginBottom: 12 }}>
               <Field label="Target table">
-                <Select value={csvTarget} onChange={(e) => { setCsvTarget(e.target.value as keyof Database); setCsvPreview(null); }}>
+                <Select value={csvTarget} onChange={(e) => { setCsvTarget(e.target.value as keyof Database); setCsvPreview(null); setCsvWarning(null); }}>
                   {CSV_TARGETS.map((t) => (
                     <option key={String(t.key)} value={String(t.key)}>
                       {t.label}
@@ -383,11 +433,14 @@ export default function AdminPage() {
               <Button onClick={commitCsv} disabled={!csvPreview}>
                 Commit ({csvPreview?.length ?? 0} rows)
               </Button>
-              <Button variant="ghost" onClick={() => { setCsvText(""); setCsvPreview(null); }}>
+              <Button variant="ghost" onClick={() => { setCsvText(""); setCsvPreview(null); setCsvWarning(null); }}>
                 Clear
               </Button>
               {status && <Badge tone={status.kind === "ok" ? "success" : "danger"}>{status.msg}</Badge>}
             </div>
+            {csvWarning && (
+              <div style={{ marginTop: 10, fontSize: 13, color: "var(--warn)" }}>{csvWarning}</div>
+            )}
 
             {csvPreview && (
               <div style={{ marginTop: 16 }}>
@@ -406,25 +459,45 @@ export default function AdminPage() {
           </Card>
         )}
 
-        {tab === "danger" && (
-          <Card>
-            <SectionTitle hint="Destructive operations are explicit and confirmed.">Danger zone</SectionTitle>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <Button variant="secondary" onClick={doReset}>
-                Reset to seed
+        <Card>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
+            <SectionTitle hint="Latest changes across the whole database.">Recent activity</SectionTitle>
+            <Link href="/audit">
+              <Button variant="secondary">
+                <ScrollText size={14} />
+                Open audit trail
               </Button>
-              <Button variant="danger" onClick={clearAll}>
-                Wipe all data
-              </Button>
-              {status && <Badge tone={status.kind === "ok" ? "success" : "danger"}>{status.msg}</Badge>}
-            </div>
-            {db.firms.length === 0 && (
-              <div style={{ marginTop: 12 }}>
-                <EmptyState message="Database is empty. Reset to seed to restore demo data." />
-              </div>
-            )}
-          </Card>
-        )}
+            </Link>
+          </div>
+          <Table
+            rows={recentAudit}
+            getRowKey={(r) => r.audit_id}
+            empty="No changes recorded yet."
+            columns={[
+              { key: "ts", header: "When", render: (r) => new Date(r.ts).toLocaleString() },
+              {
+                key: "who",
+                header: "Who",
+                render: (r) => (
+                  <div>
+                    <Badge>{r.role}</Badge>
+                    {r.actor && <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>{r.actor}</div>}
+                  </div>
+                )
+              },
+              {
+                key: "action",
+                header: "Action",
+                render: (r) => (
+                  <Badge tone={r.action === "delete" || r.action === "wipe" ? "danger" : r.action === "create" ? "success" : r.action === "import" || r.action === "reset" ? "warn" : "neutral"}>
+                    {r.action}
+                  </Badge>
+                )
+              },
+              { key: "summary", header: "Summary", render: (r) => r.summary }
+            ]}
+          />
+        </Card>
       </div>
     </RequireRole>
   );

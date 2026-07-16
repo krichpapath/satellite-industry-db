@@ -1,4 +1,4 @@
-export function parseCsv(text: string): string[][] {
+function parseCsv(text: string): string[][] {
   const rows: string[][] = [];
   let cur: string[] = [];
   let field = "";

@@ -6,3 +6,4 @@ tsconfig.tsbuildinfo
 !.env.example
 .codex
 # Keep docs/ trackable for GitHub. Dependency folders stay ignored by node_modules/.
+backend-lambda/function.zip

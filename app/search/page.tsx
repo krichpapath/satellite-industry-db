@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUpDown, Search as SearchIcon, SlidersHorizontal, X } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { ArrowRight, ArrowUpDown, Boxes, MapPin, Search as SearchIcon, SlidersHorizontal, X } from "lucide-react";
 import { useDatabase } from "@/lib/store";
 import {
   Card,
@@ -13,12 +13,13 @@ import {
   Field,
   Grid,
   Button,
-  Table,
   Badge
 } from "@/components/ui";
 import { OWNERSHIP_TYPES } from "@/lib/schema";
 import { COMPONENT_SYSTEMS, componentsForModule, modulesForSystem } from "@/lib/component-taxonomy";
 import { ProvinceCombobox } from "@/components/province-combobox";
+import { SystemPill } from "@/components/component-records";
+import { ownershipTone } from "@/components/ui";
 
 type SortKey = "company" | "province" | "components";
 
@@ -26,8 +27,33 @@ function compareText(a: string, b: string) {
   return a.localeCompare(b, undefined, { sensitivity: "base", numeric: true });
 }
 
+function recordLabel(count: number) {
+  return count === 1 ? "record" : "records";
+}
+
+function includesText(values: unknown[], keyword: string) {
+  const needle = keyword.trim().toLowerCase();
+  if (!needle) return true;
+  return values.some((value) => String(value ?? "").toLowerCase().includes(needle));
+}
+
+function highlightText(value: string, keyword: string) {
+  const needle = keyword.trim();
+  if (!needle) return value;
+  const index = value.toLowerCase().indexOf(needle.toLowerCase());
+  if (index < 0) return value;
+  return (
+    <>
+      {value.slice(0, index)}
+      <mark className="search-highlight">{value.slice(index, index + needle.length)}</mark>
+      {value.slice(index + needle.length)}
+    </>
+  );
+}
+
 export default function SearchPage() {
   const db = useDatabase();
+  const reduceMotion = useReducedMotion();
   const [keyword, setKeyword] = useState("");
   const [advanced, setAdvanced] = useState(false);
   const [system, setSystem] = useState("");
@@ -39,6 +65,16 @@ export default function SearchPage() {
 
   const modules = modulesForSystem(system);
   const componentOptions = componentsForModule(system, module);
+  const productsByFirm = useMemo(() => {
+    const groups = new Map<string, typeof db.products>();
+    for (const component of db.products) {
+      const rows = groups.get(component.firm_id) ?? [];
+      rows.push(component);
+      groups.set(component.firm_id, rows);
+    }
+    return groups;
+  }, [db.products]);
+
   const componentCounts = useMemo(() => {
     const counts = new Map<string, number>();
     for (const component of db.products) {
@@ -50,23 +86,28 @@ export default function SearchPage() {
   const filteredResults = useMemo(() => {
     const kw = keyword.trim().toLowerCase();
     return db.firms.filter((company) => {
+      const components = productsByFirm.get(company.firm_id) ?? [];
       if (kw) {
-        const components = db.products.filter((component) => component.firm_id === company.firm_id);
         const hay = [
           company.firm_name,
           company.province,
           company.industrial_zone ?? "",
           company.parent_company ?? "",
           company.registration_no,
-          ...components.flatMap((component) => [component.product_name, component.component_name, component.system, component.module, component.description ?? ""])
+          ...components.flatMap((component) => [
+            component.product_name,
+            component.component_name,
+            component.system,
+            component.module,
+            component.description ?? ""
+          ])
         ].join(" ").toLowerCase();
         if (!hay.includes(kw)) return false;
       }
       if (ownership && company.ownership_type !== ownership) return false;
       if (province && company.province !== province) return false;
       if (system || module || componentName) {
-        const has = db.products.some((component) =>
-          component.firm_id === company.firm_id &&
+        const has = components.some((component) =>
           (!system || component.system === system) &&
           (!module || component.module === module) &&
           (!componentName || component.component_name === componentName)
@@ -75,7 +116,7 @@ export default function SearchPage() {
       }
       return true;
     });
-  }, [db, keyword, ownership, province, system, module, componentName]);
+  }, [db.firms, keyword, ownership, productsByFirm, province, system, module, componentName]);
 
   const results = useMemo(() => {
     const byCompany = (a: (typeof filteredResults)[number], b: (typeof filteredResults)[number]) =>
@@ -131,32 +172,43 @@ export default function SearchPage() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      <header>
-        <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600 }}>Search</h1>
-        <div style={{ color: "var(--muted)", marginTop: 6, fontSize: 14 }}>
-          Search companies by profile fields and satellite component taxonomy.
+    <div className="search-page">
+      <header className="search-page__header">
+        <div>
+          <h1>Search companies and components</h1>
+          <p>Find companies by profile fields, province, ownership, and satellite component taxonomy.</p>
+        </div>
+        <div className="search-page__summary" aria-label="Search index summary">
+          <strong className="tabular">{db.firms.length}</strong>
+          <span>companies</span>
+          <strong className="tabular">{db.products.length}</strong>
+          <span>component records</span>
         </div>
       </header>
 
-      <Card>
+      <Card className="search-panel-card">
         <div className="search-toolbar">
-          <label className="search-keyword">
-            <SearchIcon size={17} aria-hidden="true" />
+          <label className="search-keyword search-keyword--primary">
+            <SearchIcon size={18} aria-hidden="true" />
             <Input
               type="search"
-              placeholder="Search companies, locations, systems..."
-              aria-label="Search companies"
+              placeholder="Search company, component, system, module, province"
+              aria-label="Search company, component, system, module, province"
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               style={{ borderWidth: 0, boxShadow: "none", paddingLeft: 4 }}
             />
+            {keyword && (
+              <button type="button" className="search-clear-button" onClick={() => setKeyword("")} aria-label="Clear search keyword">
+                <X size={15} aria-hidden="true" />
+              </button>
+            )}
           </label>
 
           <div className="search-control-row">
-            <Button variant="secondary" onClick={() => setAdvanced((v) => !v)} ariaLabel={advanced ? "Hide filters" : "Show filters"}>
+            <Button variant="secondary" onClick={() => setAdvanced((value) => !value)} ariaLabel={advanced ? "Hide filters" : "Show filters"}>
               <SlidersHorizontal size={16} aria-hidden="true" />
-              {advanced ? "Hide filters" : "Filters"}
+              Filters{activeFilters.length > 0 ? ` (${activeFilters.length})` : ""}
             </Button>
             <label className="search-sort">
               <ArrowUpDown size={16} aria-hidden="true" />
@@ -167,58 +219,57 @@ export default function SearchPage() {
                 <option value="components">Most components</option>
               </Select>
             </label>
-            {hasActiveFilters && (
-              <Button variant="ghost" onClick={reset}>
-                Reset
-              </Button>
-            )}
+            <div className="search-found-count" aria-live="polite">
+              <strong className="tabular">{results.length}</strong>
+              <span>{results.length === 1 ? "company" : "companies"} found</span>
+            </div>
           </div>
         </div>
 
         {advanced && (
-            <div className="search-filter-panel">
-              <Grid cols={3} gap={14}>
-                <Field label="System">
-                  <Select value={system} onChange={(e) => onSystemChange(e.target.value)}>
-                    <option value="">All systems</option>
-                    {COMPONENT_SYSTEMS.map((option) => (
+          <div className="search-filter-panel">
+            <Grid cols={3} gap={14}>
+              <Field label="System">
+                <Select value={system} onChange={(e) => onSystemChange(e.target.value)}>
+                  <option value="">All systems</option>
+                  {COMPONENT_SYSTEMS.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Province">
+                <ProvinceCombobox value={province} onChange={setProvince} allLabel="All provinces" />
+              </Field>
+              <Field label="Ownership">
+                <Select value={ownership} onChange={(e) => setOwnership(e.target.value)}>
+                  <option value="">All ownership</option>
+                  {OWNERSHIP_TYPES.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </Select>
+              </Field>
+              {system && (
+                <Field label="Module">
+                  <Select value={module} onChange={(e) => onModuleChange(e.target.value)}>
+                    <option value="">All modules</option>
+                    {modules.map((option) => (
                       <option key={option} value={option}>{option}</option>
                     ))}
                   </Select>
                 </Field>
-                <Field label="Province">
-                  <ProvinceCombobox value={province} onChange={setProvince} allLabel="All provinces" />
-                </Field>
-                <Field label="Ownership">
-                  <Select value={ownership} onChange={(e) => setOwnership(e.target.value)}>
-                    <option value="">All ownership</option>
-                    {OWNERSHIP_TYPES.map((option) => (
+              )}
+              {module && (
+                <Field label="Component">
+                  <Select value={componentName} onChange={(e) => setComponentName(e.target.value)}>
+                    <option value="">All components</option>
+                    {componentOptions.map((option) => (
                       <option key={option} value={option}>{option}</option>
                     ))}
                   </Select>
                 </Field>
-                {system && (
-                  <Field label="Module">
-                    <Select value={module} onChange={(e) => onModuleChange(e.target.value)}>
-                      <option value="">All modules</option>
-                      {modules.map((option) => (
-                        <option key={option} value={option}>{option}</option>
-                      ))}
-                    </Select>
-                  </Field>
-                )}
-                {module && (
-                  <Field label="Component">
-                    <Select value={componentName} onChange={(e) => setComponentName(e.target.value)}>
-                      <option value="">All components</option>
-                      {componentOptions.map((option) => (
-                        <option key={option} value={option}>{option}</option>
-                      ))}
-                    </Select>
-                  </Field>
-                )}
-              </Grid>
-            </div>
+              )}
+            </Grid>
+          </div>
         )}
 
         <AnimatePresence initial={false}>
@@ -239,19 +290,21 @@ export default function SearchPage() {
                   <X size={13} aria-hidden="true" />
                 </motion.button>
               ))}
+              <Button variant="ghost" onClick={reset} style={{ minHeight: 32, padding: "5px 10px" }}>
+                Clear all
+              </Button>
             </motion.div>
           )}
         </AnimatePresence>
       </Card>
 
-      <Card>
+      <Card className="search-results-card">
         <div className="search-result-header">
-          <SectionTitle hint={`${results.length} matching compan${results.length === 1 ? "y" : "ies"} sorted by ${sortLabels[sortBy]}.`}>Results</SectionTitle>
+          <SectionTitle hint={`Sorted by ${sortLabels[sortBy]}.`}>
+            Results
+          </SectionTitle>
         </div>
-        <div
-          key={`${keyword}|${system}|${module}|${componentName}|${ownership}|${province}|${sortBy}|${results.length}`}
-          className="search-results-motion"
-        >
+        <div className="search-results-motion">
           {results.length === 0 ? (
             <div className="search-empty">
               <strong>No companies match these filters.</strong>
@@ -263,44 +316,91 @@ export default function SearchPage() {
               )}
             </div>
           ) : (
-            <Table
-              rows={results}
-              getRowKey={(company) => company.firm_id}
-              empty="No companies match the filters."
-              columns={[
-                {
-                  key: "name",
-                  header: "Company",
-                  render: (company) => (
-                    <Link href={`/companies/${company.firm_id}`} style={{ color: "var(--primary)", fontWeight: 500 }}>
-                      {company.firm_name}
-                    </Link>
-                  )
-                },
-                { key: "own", header: "Ownership", render: (company) => <Badge>{company.ownership_type}</Badge> },
-                { key: "loc", header: "Location", render: (company) => company.province },
-                {
-                  key: "components",
-                  header: "Components",
-                  render: (company) => {
-                    const count = componentCounts.get(company.firm_id) ?? 0;
-                    return count === 0 ? "-" : (
-                      <span style={{ display: "inline-flex", gap: 4, flexWrap: "wrap" }}>
-                        <Badge tone="accent">{count} component{count === 1 ? "" : "s"}</Badge>
-                      </span>
-                    );
-                  }
-                },
-                {
-                  key: "systems",
-                  header: "Systems",
-                  render: (company) => {
-                    const systems = Array.from(new Set(db.products.filter((component) => component.firm_id === company.firm_id).map((component) => component.system)));
-                    return systems.length === 0 ? "-" : systems.map((value) => <Badge key={value}>{value}</Badge>);
-                  }
-                }
-              ]}
-            />
+            <div className="search-result-list">
+              {results.map((company) => {
+                const companyProducts = productsByFirm.get(company.firm_id) ?? [];
+                const hasKeyword = keyword.trim().length > 0;
+                const keywordMatchedProducts = hasKeyword
+                  ? companyProducts.filter((component) => includesText([
+                      component.product_name,
+                      component.component_name,
+                      component.system,
+                      component.module,
+                      component.description ?? ""
+                    ], keyword))
+                  : [];
+                const visibleProducts = keywordMatchedProducts.slice(0, 3);
+                const profileMatched = hasKeyword && includesText([
+                  company.firm_name,
+                  company.province,
+                  company.industrial_zone ?? "",
+                  company.parent_company ?? "",
+                  company.registration_no
+                ], keyword);
+                const systems = Array.from(new Set(companyProducts.map((component) => component.system))).slice(0, 4);
+                const componentCount = componentCounts.get(company.firm_id) ?? 0;
+
+                return (
+                  <motion.article
+                    key={company.firm_id}
+                    layout={!reduceMotion}
+                    transition={{ duration: 0.24, ease: [0.2, 0.7, 0.2, 1] }}
+                    className="search-result-card"
+                  >
+                    <div className="search-result-card__main">
+                      <div className="search-result-card__title-row">
+                        <Link href={`/companies/${company.firm_id}`} className="search-result-card__title">
+                          {highlightText(company.firm_name, keyword)}
+                        </Link>
+                        <Link href={`/companies/${company.firm_id}`} className="search-result-card__open" aria-label={`View ${company.firm_name}`}>
+                          View
+                          <ArrowRight size={15} aria-hidden="true" />
+                        </Link>
+                      </div>
+                      <div className="search-result-card__meta">
+                        <span><MapPin size={14} aria-hidden="true" />{highlightText(company.province, keyword)}</span>
+                        <Badge tone={ownershipTone(company.ownership_type)}>{company.ownership_type}</Badge>
+                        <span><Boxes size={14} aria-hidden="true" />{componentCount} component {recordLabel(componentCount)}</span>
+                      </div>
+                      {profileMatched && visibleProducts.length === 0 && (
+                        <div className="search-result-card__profile-match">Matched company profile fields.</div>
+                      )}
+                      <div className="search-result-card__systems" aria-label={`Systems represented by ${company.firm_name}`}>
+                        {systems.length === 0 ? (
+                          <span>No linked systems yet</span>
+                        ) : (
+                          systems.map((value) => <SystemPill key={value} system={value} compact />)
+                        )}
+                      </div>
+                      <AnimatePresence initial={false}>
+                        {visibleProducts.length > 0 && (
+                          <motion.div
+                            className="search-result-card__components"
+                            initial={reduceMotion ? { opacity: 0 } : { opacity: 0, height: 0, y: -6 }}
+                            animate={reduceMotion ? { opacity: 1 } : { opacity: 1, height: "auto", y: 0 }}
+                            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, height: 0, y: -4 }}
+                            transition={{ duration: reduceMotion ? 0.01 : 0.22, ease: [0.2, 0.7, 0.2, 1] }}
+                          >
+                            <span className="search-result-card__section-label">Matched components</span>
+                            <ul>
+                              {visibleProducts.map((component) => {
+                                const name = component.component_name || component.product_name || "Unnamed component";
+                                return (
+                                  <li key={`${company.firm_id}-${component.product_id ?? name}`}>
+                                    <strong>{highlightText(name, keyword)}</strong>
+                                    <span>{highlightText(`${component.system} / ${component.module}`, keyword)}</span>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </motion.article>
+                );
+              })}
+            </div>
           )}
         </div>
       </Card>

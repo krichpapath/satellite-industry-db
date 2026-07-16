@@ -41,7 +41,7 @@ const SCHEMA_SQL = `
     visibility_level TEXT NOT NULL DEFAULT 'internal'
       CHECK (visibility_level IN ('public', 'internal', 'confidential', 'restricted')),
     review_status TEXT NOT NULL DEFAULT 'draft'
-      CHECK (review_status IN ('draft', 'pending_review', 'published', 'retired')),
+      CHECK (review_status IN ('draft', 'published', 'retired')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   );
@@ -62,7 +62,7 @@ const SCHEMA_SQL = `
     visibility_level TEXT NOT NULL DEFAULT 'internal'
       CHECK (visibility_level IN ('public', 'internal', 'confidential', 'restricted')),
     review_status TEXT NOT NULL DEFAULT 'draft'
-      CHECK (review_status IN ('draft', 'pending_review', 'published', 'retired')),
+      CHECK (review_status IN ('draft', 'published', 'retired')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   );
@@ -89,7 +89,7 @@ const SCHEMA_SQL = `
     visibility_level TEXT NOT NULL DEFAULT 'internal'
       CHECK (visibility_level IN ('public', 'internal', 'confidential', 'restricted')),
     review_status TEXT NOT NULL DEFAULT 'draft'
-      CHECK (review_status IN ('draft', 'pending_review', 'published', 'retired')),
+      CHECK (review_status IN ('draft', 'published', 'retired')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   );
@@ -108,7 +108,7 @@ const SCHEMA_SQL = `
     visibility_level TEXT NOT NULL DEFAULT 'internal'
       CHECK (visibility_level IN ('public', 'internal', 'confidential', 'restricted')),
     review_status TEXT NOT NULL DEFAULT 'draft'
-      CHECK (review_status IN ('draft', 'pending_review', 'published', 'retired')),
+      CHECK (review_status IN ('draft', 'published', 'retired')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   );
@@ -164,7 +164,7 @@ const SCHEMA_SQL = `
     visibility_level TEXT NOT NULL DEFAULT 'internal'
       CHECK (visibility_level IN ('public', 'internal', 'confidential', 'restricted')),
     review_status TEXT NOT NULL DEFAULT 'draft'
-      CHECK (review_status IN ('draft', 'pending_review', 'published', 'retired')),
+      CHECK (review_status IN ('draft', 'published', 'retired')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   );
@@ -184,7 +184,7 @@ const SCHEMA_SQL = `
     visibility_level TEXT NOT NULL DEFAULT 'internal'
       CHECK (visibility_level IN ('public', 'internal', 'confidential', 'restricted')),
     review_status TEXT NOT NULL DEFAULT 'draft'
-      CHECK (review_status IN ('draft', 'pending_review', 'published', 'retired')),
+      CHECK (review_status IN ('draft', 'published', 'retired')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   );
@@ -202,7 +202,7 @@ const SCHEMA_SQL = `
     visibility_level TEXT NOT NULL DEFAULT 'internal'
       CHECK (visibility_level IN ('public', 'internal', 'confidential', 'restricted')),
     review_status TEXT NOT NULL DEFAULT 'draft'
-      CHECK (review_status IN ('draft', 'pending_review', 'published', 'retired')),
+      CHECK (review_status IN ('draft', 'published', 'retired')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   );
@@ -220,7 +220,7 @@ const SCHEMA_SQL = `
     visibility_level TEXT NOT NULL DEFAULT 'internal'
       CHECK (visibility_level IN ('public', 'internal', 'confidential', 'restricted')),
     review_status TEXT NOT NULL DEFAULT 'draft'
-      CHECK (review_status IN ('draft', 'pending_review', 'published', 'retired')),
+      CHECK (review_status IN ('draft', 'published', 'retired')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CHECK (firm_id <> partner_firm_id)
@@ -242,7 +242,7 @@ const SCHEMA_SQL = `
     visibility_level TEXT NOT NULL DEFAULT 'internal'
       CHECK (visibility_level IN ('public', 'internal', 'confidential', 'restricted')),
     review_status TEXT NOT NULL DEFAULT 'draft'
-      CHECK (review_status IN ('draft', 'pending_review', 'published', 'retired')),
+      CHECK (review_status IN ('draft', 'published', 'retired')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   );
@@ -262,7 +262,7 @@ const SCHEMA_SQL = `
     visibility_level TEXT NOT NULL DEFAULT 'internal'
       CHECK (visibility_level IN ('public', 'internal', 'confidential', 'restricted')),
     review_status TEXT NOT NULL DEFAULT 'draft'
-      CHECK (review_status IN ('draft', 'pending_review', 'published', 'retired')),
+      CHECK (review_status IN ('draft', 'published', 'retired')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   );

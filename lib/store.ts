@@ -1,16 +1,19 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import type { Database, Role, AuditEntry } from "./schema";
+import type { Database, Role, AuditEntry, RecordState } from "./schema";
 import { DEFAULT_VOCAB } from "./schema";
 import { SEED } from "./seed";
 import { apiConfigured, getDataset, saveDataset } from "./api";
+import { getSessionEmail } from "./users";
 import { COMPONENT_SYSTEMS, cleanComponentLabel, findComponentPath, modulesForSystem, normalizeSystem } from "./component-taxonomy";
 import { sanitizeRichText } from "./rich-text";
 
 const KEY = "satdb.v3";
 const ROLE_KEY = "satdb.role";
 const ROLE_ENTRY_KEY = "satdb.role-entry";
+const FIRM_ENTRY_KEY = "satdb.firm-entry";
+const PRODUCT_STATE_MIGRATION_KEY = "satdb.product-states-public.v1";
 const LEGACY_KEYS = ["satdb.v2", "satdb.v1"];
 let apiSyncPromise: Promise<ApiSyncResult> | null = null;
 let apiSavePromise: Promise<void> | null = null;
@@ -18,6 +21,11 @@ let apiSavePromise: Promise<void> | null = null;
 export type ApiSyncResult =
   | { ok: true; count: number; tables: Record<string, number> }
   | { ok: false; reason: string };
+
+function normalizeRecordState(value: unknown): RecordState {
+  const state = String(value ?? "").toLowerCase();
+  return state === "draft" ? "draft" : "public";
+}
 
 function migrateProducts(products: unknown, base: Database): Database["products"] {
   const fallbackSystem = COMPONENT_SYSTEMS[0] ?? "";
@@ -49,7 +57,8 @@ function migrateProducts(products: unknown, base: Database): Database["products"
         module,
         product_trl: productTrl,
         flight_heritage: row.flight_heritage ? String(row.flight_heritage) : undefined,
-        description: row.description ? sanitizeRichText(row.description) : undefined
+        description: row.description ? sanitizeRichText(row.description) : undefined,
+        record_state: normalizeRecordState(row.record_state ?? row.review_status)
       };
     });
 }
@@ -76,20 +85,32 @@ function migrate(db: unknown): Database {
   };
 }
 
+function publishExistingProducts(db: Database): Database {
+  if (typeof window === "undefined") return db;
+  if (window.localStorage.getItem(PRODUCT_STATE_MIGRATION_KEY)) return db;
+  const next = {
+    ...db,
+    products: db.products.map((product) => ({ ...product, record_state: "public" as const }))
+  };
+  window.localStorage.setItem(KEY, JSON.stringify(next));
+  window.localStorage.setItem(PRODUCT_STATE_MIGRATION_KEY, "1");
+  return next;
+}
+
 function readRaw(): Database {
   if (typeof window === "undefined") return migrate(SEED);
   try {
     const raw = window.localStorage.getItem(KEY);
-    if (raw) return migrate(JSON.parse(raw));
+    if (raw) return publishExistingProducts(migrate(JSON.parse(raw)));
     for (const k of LEGACY_KEYS) {
       const legacy = window.localStorage.getItem(k);
       if (legacy) {
-        const migrated = migrate(JSON.parse(legacy));
+        const migrated = publishExistingProducts(migrate(JSON.parse(legacy)));
         window.localStorage.setItem(KEY, JSON.stringify(migrated));
         return migrated;
       }
     }
-    return migrate(SEED);
+    return publishExistingProducts(migrate(SEED));
   } catch {
     return migrate(SEED);
   }
@@ -118,8 +139,9 @@ function getSnapshot(): Database {
   if (typeof window === "undefined") return SEED;
   const raw = window.localStorage.getItem(KEY);
   if (raw === cachedRaw && cachedSnapshot) return cachedSnapshot;
-  cachedRaw = raw;
   cachedSnapshot = readRaw();
+  // readRaw can migrate and rewrite storage; cache the post-migration raw so repeat calls stay stable.
+  cachedRaw = window.localStorage.getItem(KEY);
   return cachedSnapshot;
 }
 
@@ -208,14 +230,50 @@ function tableCounts(db: Database): Record<string, number> {
   };
 }
 
+export type SyncStatus = {
+  lastSync: { ts: string; result: ApiSyncResult } | null;
+  lastSave: { ts: string; ok: boolean; error?: string } | null;
+  saving: boolean;
+};
+
+// ponytail: module state — resets on HMR/reload, which is fine for ephemeral status.
+let syncStatus: SyncStatus = { lastSync: null, lastSave: null, saving: false };
+const SERVER_SYNC_STATUS: SyncStatus = { lastSync: null, lastSave: null, saving: false };
+
+function setSyncStatus(patch: Partial<SyncStatus>) {
+  syncStatus = { ...syncStatus, ...patch };
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("satdb:sync"));
+}
+
+function subscribeSync(cb: () => void) {
+  const handler = () => cb();
+  window.addEventListener("satdb:sync", handler);
+  return () => window.removeEventListener("satdb:sync", handler);
+}
+
+export function useSyncStatus(): SyncStatus {
+  return useSyncExternalStore(subscribeSync, () => syncStatus, () => SERVER_SYNC_STATUS);
+}
+
 function queueRemoteSave(db: Database) {
   if (typeof window === "undefined") return;
   if (!apiConfigured()) return;
   const snapshot = JSON.parse(JSON.stringify(db)) as Database;
+  setSyncStatus({ saving: true });
   apiSavePromise = saveDataset(snapshot)
-    .then(() => undefined)
+    .then(() => {
+      setSyncStatus({ saving: false, lastSave: { ts: new Date().toISOString(), ok: true } });
+    })
     .catch((error) => {
       console.warn("Remote dataset save failed", error);
+      setSyncStatus({
+        saving: false,
+        lastSave: {
+          ts: new Date().toISOString(),
+          ok: false,
+          error: error instanceof Error ? error.message : String(error)
+        }
+      });
     });
 }
 
@@ -223,30 +281,50 @@ export function currentRemoteSave() {
   return apiSavePromise;
 }
 
+// Window flag instead of module state so readiness survives dev HMR module reinit.
+declare global {
+  interface Window {
+    __satdbReady?: boolean;
+  }
+}
+
+function markDbReady() {
+  if (window.__satdbReady) return;
+  window.__satdbReady = true;
+  window.dispatchEvent(new Event("satdb:change"));
+}
+
+export function useDbReady() {
+  return useSyncExternalStore(subscribe, () => Boolean(window.__satdbReady), () => false);
+}
+
 export async function syncDatasetFromApi(force = false): Promise<ApiSyncResult> {
   if (typeof window === "undefined") return { ok: false, reason: "server-render" };
-  if (!apiConfigured()) return { ok: false, reason: "missing-api-base-url" };
+  if (!apiConfigured()) {
+    markDbReady();
+    return { ok: false, reason: "missing-api-base-url" };
+  }
   if (apiSyncPromise && !force) return apiSyncPromise;
 
   apiSyncPromise = (async () => {
+    let result: ApiSyncResult;
     try {
       const remote = remoteDb(await getDataset());
       writeRaw(remote);
-      return { ok: true, count: remote.firms.length, tables: tableCounts(remote) };
+      result = { ok: true, count: remote.firms.length, tables: tableCounts(remote) };
     } catch (error) {
       console.warn("Dataset API sync failed", error);
-      return {
+      result = {
         ok: false,
         reason: error instanceof Error ? error.message : "unknown-error"
       };
     }
+    setSyncStatus({ lastSync: { ts: new Date().toISOString(), result } });
+    markDbReady();
+    return result;
   })();
 
   return apiSyncPromise;
-}
-
-export async function syncFirmsFromApi(force = false): Promise<ApiSyncResult> {
-  return syncDatasetFromApi(force);
 }
 
 export function exportJson(): string {
@@ -280,7 +358,7 @@ export function nextId(prefix: string, existing: readonly Record<string, unknown
   return `${prefix}${String(maxN + 1).padStart(3, "0")}`;
 }
 
-function appendAudit(db: Database, action: AuditEntry["action"], table: string, id: string, summary: string) {
+function appendAudit(db: Database, action: AuditEntry["action"], table: string, id: string, summary: string, firmId?: string) {
   if (!db.audit) db.audit = [];
   db.audit.unshift({
     audit_id: nextId("A", db.audit as unknown as Record<string, unknown>[], "audit_id"),
@@ -289,7 +367,9 @@ function appendAudit(db: Database, action: AuditEntry["action"], table: string, 
     action,
     target_table: table,
     target_id: id,
-    summary
+    summary,
+    firm_id: firmId,
+    actor: getSessionEmail() ?? undefined
   });
   if (db.audit.length > 500) db.audit.length = 500;
 }
@@ -308,7 +388,7 @@ export function commit(
     const firm = db.firms.find((f) => f.firm_id === opts.firmId);
     if (firm) firm.last_updated_ts = now;
   }
-  appendAudit(db, opts.action, opts.table, opts.id, opts.summary);
+  appendAudit(db, opts.action, opts.table, opts.id, opts.summary, opts.table === "firms" ? opts.id : opts.firmId);
   writeRaw(db);
   queueRemoteSave(db);
 }
@@ -329,7 +409,19 @@ export function setRole(role: Role) {
 export function setEntryRole(role: Role) {
   if (typeof window === "undefined") return;
   window.sessionStorage.setItem(ROLE_ENTRY_KEY, role);
+  if (role !== "Analyst") window.sessionStorage.removeItem(FIRM_ENTRY_KEY);
   setRole(role);
+}
+
+export function getEntryFirmId(): string | null {
+  if (typeof window === "undefined") return null;
+  return window.sessionStorage.getItem(FIRM_ENTRY_KEY);
+}
+
+export function setEntryFirmId(firmId: string | null) {
+  if (typeof window === "undefined") return;
+  if (firmId) window.sessionStorage.setItem(FIRM_ENTRY_KEY, firmId);
+  else window.sessionStorage.removeItem(FIRM_ENTRY_KEY);
 }
 
 export function ensurePublicEntryRole() {

@@ -17,7 +17,7 @@ Changes made for the current app:
 - Public IDs stay as strings (`F001`, `P001`, `T001`) because the Next.js routes and mock relationships already depend on them.
 - `products_services` includes app-specific satellite taxonomy fields: SIA category, ITU service, orbit type, frequency band, NAICS, HS, product TRL, and description.
 - `data_sources`, `vocab_terms`, and `audit_log` are first-class tables because the frontend already has source, taxonomy, and audit screens.
-- `review_status` and `visibility_level` are included as schema hooks for future real auth/review workflows. No full login is implemented here.
+- `review_status` and `visibility_level` are included as schema hooks for company-managed draft/public visibility. No full login is implemented here.
 - `contracts` is retained from the AWS prototype, but the current frontend does not populate it.
 
 ## Example Data Mapping

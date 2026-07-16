@@ -8,6 +8,7 @@ export type OwnershipType = "Local" | "Foreign" | "JV";
 export type LinkageType = "Supplier" | "Buyer" | "Partner";
 export type PartnerType = "University" | "PRI" | "Association";
 export type CollabType = "R&D" | "Training" | "Testing";
+export type RecordState = "draft" | "public";
 export type Role = "Public" | "Analyst" | "Admin";
 
 export interface Firm {
@@ -49,6 +50,7 @@ export interface ProductService {
   product_trl?: number | "Unidentified";
   flight_heritage?: string;
   description?: string;
+  record_state?: RecordState;
 }
 
 export interface TechCapability {
@@ -126,6 +128,8 @@ export interface AuditEntry {
   target_table: string;
   target_id: string;
   summary: string;
+  firm_id?: string;
+  actor?: string;
 }
 
 export interface Vocab {
@@ -331,7 +335,7 @@ export function roleAtLeast(current: Role, needed: Role): boolean {
 
 export function rolePermissions(role: Role) {
   return {
-    canCreateCompany: role === "Analyst" || role === "Admin",
+    canCreateCompany: role === "Admin",
     canAddComponent: role === "Analyst" || role === "Admin",
     canEdit: role === "Admin",
     canDelete: role === "Admin",

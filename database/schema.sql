@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS data_sources (
   visibility_level TEXT NOT NULL DEFAULT 'internal'
     CHECK (visibility_level IN ('public', 'internal', 'confidential', 'restricted')),
   review_status TEXT NOT NULL DEFAULT 'draft'
-    CHECK (review_status IN ('draft', 'pending_review', 'published', 'retired')),
+    CHECK (review_status IN ('draft', 'published', 'retired')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS firms (
   visibility_level TEXT NOT NULL DEFAULT 'internal'
     CHECK (visibility_level IN ('public', 'internal', 'confidential', 'restricted')),
   review_status TEXT NOT NULL DEFAULT 'draft'
-    CHECK (review_status IN ('draft', 'pending_review', 'published', 'retired')),
+    CHECK (review_status IN ('draft', 'published', 'retired')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS firm_size_finance (
   visibility_level TEXT NOT NULL DEFAULT 'internal'
     CHECK (visibility_level IN ('public', 'internal', 'confidential', 'restricted')),
   review_status TEXT NOT NULL DEFAULT 'draft'
-    CHECK (review_status IN ('draft', 'pending_review', 'published', 'retired')),
+    CHECK (review_status IN ('draft', 'published', 'retired')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -93,7 +93,7 @@ CREATE TABLE IF NOT EXISTS products_services (
   visibility_level TEXT NOT NULL DEFAULT 'internal'
     CHECK (visibility_level IN ('public', 'internal', 'confidential', 'restricted')),
   review_status TEXT NOT NULL DEFAULT 'draft'
-    CHECK (review_status IN ('draft', 'pending_review', 'published', 'retired')),
+    CHECK (review_status IN ('draft', 'published', 'retired')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -118,7 +118,7 @@ CREATE TABLE IF NOT EXISTS technology_capability (
   visibility_level TEXT NOT NULL DEFAULT 'internal'
     CHECK (visibility_level IN ('public', 'internal', 'confidential', 'restricted')),
   review_status TEXT NOT NULL DEFAULT 'draft'
-    CHECK (review_status IN ('draft', 'pending_review', 'published', 'retired')),
+    CHECK (review_status IN ('draft', 'published', 'retired')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -140,7 +140,7 @@ CREATE TABLE IF NOT EXISTS infrastructure_facility (
   visibility_level TEXT NOT NULL DEFAULT 'internal'
     CHECK (visibility_level IN ('public', 'internal', 'confidential', 'restricted')),
   review_status TEXT NOT NULL DEFAULT 'draft'
-    CHECK (review_status IN ('draft', 'pending_review', 'published', 'retired')),
+    CHECK (review_status IN ('draft', 'published', 'retired')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -158,7 +158,7 @@ CREATE TABLE IF NOT EXISTS human_resource_profile (
   visibility_level TEXT NOT NULL DEFAULT 'internal'
     CHECK (visibility_level IN ('public', 'internal', 'confidential', 'restricted')),
   review_status TEXT NOT NULL DEFAULT 'draft'
-    CHECK (review_status IN ('draft', 'pending_review', 'published', 'retired')),
+    CHECK (review_status IN ('draft', 'published', 'retired')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -176,7 +176,7 @@ CREATE TABLE IF NOT EXISTS supply_chain_linkage (
   visibility_level TEXT NOT NULL DEFAULT 'internal'
     CHECK (visibility_level IN ('public', 'internal', 'confidential', 'restricted')),
   review_status TEXT NOT NULL DEFAULT 'draft'
-    CHECK (review_status IN ('draft', 'pending_review', 'published', 'retired')),
+    CHECK (review_status IN ('draft', 'published', 'retired')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CHECK (firm_id <> partner_firm_id)
@@ -200,7 +200,7 @@ CREATE TABLE IF NOT EXISTS collaboration_network (
   visibility_level TEXT NOT NULL DEFAULT 'internal'
     CHECK (visibility_level IN ('public', 'internal', 'confidential', 'restricted')),
   review_status TEXT NOT NULL DEFAULT 'draft'
-    CHECK (review_status IN ('draft', 'pending_review', 'published', 'retired')),
+    CHECK (review_status IN ('draft', 'published', 'retired')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -220,7 +220,7 @@ CREATE TABLE IF NOT EXISTS sustainability_esg (
   visibility_level TEXT NOT NULL DEFAULT 'internal'
     CHECK (visibility_level IN ('public', 'internal', 'confidential', 'restricted')),
   review_status TEXT NOT NULL DEFAULT 'draft'
-    CHECK (review_status IN ('draft', 'pending_review', 'published', 'retired')),
+    CHECK (review_status IN ('draft', 'published', 'retired')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
