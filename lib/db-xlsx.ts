@@ -204,8 +204,7 @@ function buildSheets(db: Database, nameSource: Database["firms"] = db.firms): Sh
       columns: [
         { header: "Audit ID", width: 10 },
         { header: "Timestamp", width: 22 },
-        { header: "Actor", width: 28 },
-        { header: "Role", width: 10 },
+       { header: "Role", width: 10 },
         { header: "Action", width: 10 },
         { header: "Table", width: 14 },
         { header: "Target ID", width: 12 },
@@ -213,7 +212,7 @@ function buildSheets(db: Database, nameSource: Database["firms"] = db.firms): Sh
         { header: "Summary", width: 50 }
       ],
       rows: db.audit.map((r) => [
-        r.audit_id, r.ts, r.actor, r.role, r.action, r.target_table, r.target_id,
+        r.audit_id, r.ts, r.role, r.action, r.target_table, r.target_id,
         r.firm_id ? firmName(r.firm_id) : "", r.summary
       ])
     }

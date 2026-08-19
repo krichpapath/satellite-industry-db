@@ -32,6 +32,10 @@ import type { Database } from "@/lib/schema";
 import { createAllComponentsXlsx } from "@/lib/component-xlsx";
 import { createDatabaseXlsx } from "@/lib/db-xlsx";
 
+// Import replaces live data and is unverified -- hidden until it is tested.
+// Flip to true to bring back the CSV tab and the JSON restore controls.
+const IMPORT_ENABLED = false;
+
 type Tab = "json" | "csv";
 
 const CSV_TARGETS: { key: keyof Database; label: string; idField: string; idPrefix: string; columns: string[] }[] = [
@@ -349,7 +353,7 @@ export default function AdminPage() {
         </Card>
 
         <div className="admin-tab-row" style={{ display: "flex", gap: 6 }}>
-          {(["json", "csv"] as Tab[]).map((t) => (
+          {(IMPORT_ENABLED ? (["json", "csv"] as Tab[]) : (["json"] as Tab[])).map((t) => (
             <Button key={t} variant={tab === t ? "primary" : "secondary"} onClick={() => setTab(t)}>
               {t === "json" ? "JSON Backup" : "CSV Import (ETL)"}
             </Button>
@@ -366,16 +370,20 @@ export default function AdminPage() {
               <Button variant="secondary" onClick={doDownload}>
                 Download .json
               </Button>
-              <Button variant="secondary" onClick={() => fileRef.current?.click()}>
-                Load from file…
-              </Button>
-              <input
-                ref={fileRef}
-                type="file"
-                accept="application/json"
-                style={{ display: "none" }}
-                onChange={onFile}
-              />
+              {IMPORT_ENABLED && (
+                <>
+                  <Button variant="secondary" onClick={() => fileRef.current?.click()}>
+                    Load from file…
+                  </Button>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="application/json"
+                    style={{ display: "none" }}
+                    onChange={onFile}
+                  />
+                </>
+              )}
               <Button variant="ghost" onClick={() => setJsonText("")}>
                 Clear text
               </Button>
@@ -383,13 +391,19 @@ export default function AdminPage() {
             <Textarea
               rows={14}
               value={jsonText}
-              placeholder="Paste a database JSON here to replace the local store, then click Import."
+              placeholder={
+                IMPORT_ENABLED
+                  ? "Paste a database JSON here to replace the local store, then click Import."
+                  : "Read-only snapshot. Click “Show current JSON” above."
+              }
               onChange={(e) => setJsonText(e.target.value)}
             />
             <div className="admin-action-row" style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-              <Button onClick={doImport} disabled={!jsonText.trim()}>
-                Import JSON
-              </Button>
+              {IMPORT_ENABLED && (
+                <Button onClick={doImport} disabled={!jsonText.trim()}>
+                  Import JSON
+                </Button>
+              )}
               {status && <Badge tone={status.kind === "ok" ? "success" : "danger"}>{status.msg}</Badge>}
             </div>
           </Card>
@@ -475,16 +489,7 @@ export default function AdminPage() {
             empty="No changes recorded yet."
             columns={[
               { key: "ts", header: "When", render: (r) => new Date(r.ts).toLocaleString() },
-              {
-                key: "who",
-                header: "Who",
-                render: (r) => (
-                  <div>
-                    <Badge>{r.role}</Badge>
-                    {r.actor && <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>{r.actor}</div>}
-                  </div>
-                )
-              },
+              { key: "role", header: "Role", render: (r) => <Badge>{r.role}</Badge> },
               {
                 key: "action",
                 header: "Action",

@@ -129,7 +129,6 @@ export interface AuditEntry {
   target_id: string;
   summary: string;
   firm_id?: string;
-  actor?: string;
 }
 
 export interface Vocab {
@@ -335,7 +334,7 @@ export function roleAtLeast(current: Role, needed: Role): boolean {
 
 export function rolePermissions(role: Role) {
   return {
-    canCreateCompany: role === "Admin",
+    canCreateCompany: role === "Analyst" || role === "Admin",
     canAddComponent: role === "Analyst" || role === "Admin",
     canEdit: role === "Admin",
     canDelete: role === "Admin",

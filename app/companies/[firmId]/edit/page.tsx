@@ -2,7 +2,7 @@
 
 import { use } from "react";
 import Link from "next/link";
-import { getEntryFirmId, useDatabase, useRole } from "@/lib/store";
+import { useDatabase, useRole } from "@/lib/store";
 import { Button, Card, EmptyState } from "@/components/ui";
 import { FirmForm } from "@/components/firm-form";
 
@@ -10,7 +10,7 @@ export default function EditFirmPage({ params }: { params: Promise<{ firmId: str
   const { firmId } = use(params);
   const db = useDatabase();
   const role = useRole();
-  const canManage = role === "Admin" || (role === "Analyst" && getEntryFirmId() === firmId);
+  const canManage = role === "Admin";
   const firm = db.firms.find((f) => f.firm_id === firmId);
 
   if (!firm) return <div>Company not found.</div>;
@@ -18,7 +18,7 @@ export default function EditFirmPage({ params }: { params: Promise<{ firmId: str
   if (!canManage) {
     return (
       <Card>
-        <EmptyState message="Only this company's editor or an admin can edit this profile." />
+        <EmptyState message="Admin access is required to edit this profile." />
         <div style={{ textAlign: "center", marginTop: 12 }}>
           <Link href={`/companies/${firmId}`}>
             <Button variant="secondary">Back to company</Button>

@@ -45,31 +45,66 @@ Then run `.\start.cmd` again. If `npm.cmd` is not available on a fresh checkout,
 
 ## Vercel
 
-This prototype is deployable as a standard Next.js app on Vercel. Build command:
+Standard Next.js app on Vercel. Build command:
 
 ```powershell
 npm.cmd run build
 ```
 
-The frontend can still run as a local prototype with browser `localStorage`, but the real shared path is AWS backed:
+The backend is **Supabase** (PostgREST over PostgreSQL). The AWS path below is
+retired — API Gateway, Lambda and RDS are no longer used, and
+`NEXT_PUBLIC_API_BASE_URL` is not read by any code.
 
 ```text
-Vercel frontend -> API Gateway HTTP API -> AWS Lambda -> Amazon RDS PostgreSQL
+Vercel frontend -> Supabase PostgREST -> PostgreSQL
 ```
 
-The frontend never connects to RDS directly.
-
-To connect Vercel to API Gateway, add this Vercel Project Settings environment variable:
+Set exactly these two variables in Vercel Project Settings -> Environment
+Variables:
 
 ```text
-NEXT_PUBLIC_API_BASE_URL=https://60tprkt5qh.execute-api.ap-southeast-1.amazonaws.com/
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_...
 ```
 
-On app load, the frontend fetches `GET /dataset`, normalizes the full API response into the app `Database` shape, and hydrates the browser store. Form edits update the browser store immediately and queue `PUT /dataset` to persist the full dataset to PostgreSQL. New firms also call `POST /firms` first so the basic firm creation route remains independently testable.
+Then **Redeploy**. `NEXT_PUBLIC_*` values are inlined at build time, so saving a
+variable changes nothing until the next build. If they are missing the app still
+renders, but every save stays in the browser and `/admin` reports
+"API not configured".
 
-The API Gateway/Lambda must allow CORS from the Vercel deployment domain.
+Do **not** set `SUPABASE_SERVICE_ROLE_KEY` in Vercel. Nothing server-side reads
+it since the account feature was reverted, and it bypasses row-level security.
 
-## AWS Database V2
+On load the frontend reads every table, normalizes the rows into the app
+`Database` shape and hydrates the browser store. Each edit writes just the
+changed row plus its audit entry (`writeRow` in `lib/api.ts`); the
+whole-dataset `replace_dataset()` RPC is only used by JSON import, CSV import
+and reset.
+
+### Before deploying
+
+```powershell
+npm.cmd test
+npm.cmd run typecheck
+npm.cmd run check:schema
+npm.cmd run build
+```
+
+`check:schema` compares the column allowlist in `lib/api.ts` against the live
+database. A mismatch there fails every write to that table at runtime with a
+PGRST204 error, so run it after any schema change.
+
+Database migrations must already be applied, in this order:
+`database/supabase-migration.sql`, `database/supabase-writes.sql`,
+`database/supabase-drop-account-policies.sql`. See `docs/TEST_PLAN.md`.
+
+## AWS Database V2 (RETIRED — historical reference only)
+
+> Superseded by Supabase on 2026-07-17. **Do not run the commands below.** The
+> endpoints point at the old API Gateway / Lambda / RDS stack, which is no
+> longer the source of truth; anything they touch is either gone or stale. Kept
+> only to document how the v2 schema was originally built. For current setup see
+> **Vercel** above and `database/MIGRATION_NOTES.md`.
 
 Reference files:
 
@@ -113,7 +148,9 @@ Current API surface:
 
 ## Routes
 
-- `/` - input workbench
+- `/` - Public entry and dashboard
+- `/analysis` - Analyst entry; selects the Analyst role and opens Companies
+- `/coolAdmin` - Admin entry; selects the Admin role and opens Companies
 - `/companies` - firm anchor records (old `/firms/*` URLs redirect here)
 - `/companies/new` - expert firm intake flow
 - `/companies/[firmId]` - firm overview and domain completeness

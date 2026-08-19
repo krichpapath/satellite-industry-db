@@ -4,15 +4,13 @@ import { useSyncExternalStore } from "react";
 import type { Database, Role, AuditEntry, RecordState } from "./schema";
 import { DEFAULT_VOCAB } from "./schema";
 import { SEED } from "./seed";
-import { apiConfigured, getDataset, saveDataset } from "./api";
-import { getSessionEmail } from "./users";
+import { apiConfigured, getDataset, saveDataset, writeRow, writeVocabKey, isDatasetKey, PRIMARY_KEY, type ApiTableKey } from "./api";
 import { COMPONENT_SYSTEMS, cleanComponentLabel, findComponentPath, modulesForSystem, normalizeSystem } from "./component-taxonomy";
 import { sanitizeRichText } from "./rich-text";
 
 const KEY = "satdb.v3";
 const ROLE_KEY = "satdb.role";
 const ROLE_ENTRY_KEY = "satdb.role-entry";
-const FIRM_ENTRY_KEY = "satdb.firm-entry";
 const PRODUCT_STATE_MIGRATION_KEY = "satdb.product-states-public.v1";
 const LEGACY_KEYS = ["satdb.v2", "satdb.v1"];
 let apiSyncPromise: Promise<ApiSyncResult> | null = null;
@@ -255,17 +253,16 @@ export function useSyncStatus(): SyncStatus {
   return useSyncExternalStore(subscribeSync, () => syncStatus, () => SERVER_SYNC_STATUS);
 }
 
-function queueRemoteSave(db: Database) {
+function queueSave(run: () => Promise<unknown>) {
   if (typeof window === "undefined") return;
   if (!apiConfigured()) return;
-  const snapshot = JSON.parse(JSON.stringify(db)) as Database;
   setSyncStatus({ saving: true });
-  apiSavePromise = saveDataset(snapshot)
+  apiSavePromise = run()
     .then(() => {
       setSyncStatus({ saving: false, lastSave: { ts: new Date().toISOString(), ok: true } });
     })
     .catch((error) => {
-      console.warn("Remote dataset save failed", error);
+      console.warn("Remote save failed", error);
       setSyncStatus({
         saving: false,
         lastSave: {
@@ -275,6 +272,26 @@ function queueRemoteSave(db: Database) {
         }
       });
     });
+}
+
+// Whole-dataset swap. Only for the operations that genuinely replace everything:
+// JSON import, reset, and CSV bulk import. Single edits go through queueRowSave.
+function queueRemoteSave(db: Database) {
+  const snapshot = JSON.parse(JSON.stringify(db)) as Database;
+  queueSave(() => saveDataset(snapshot));
+}
+
+function queueRowSave(
+  key: ApiTableKey,
+  action: "create" | "update" | "delete",
+  id: string,
+  row: Record<string, unknown> | undefined,
+  audit: AuditEntry | undefined
+) {
+  queueSave(async () => {
+    await writeRow(key, action, id, row);
+    if (audit) await writeRow("audit", "create", audit.audit_id, audit as unknown as Record<string, unknown>);
+  });
 }
 
 export function currentRemoteSave() {
@@ -361,15 +378,19 @@ export function nextId(prefix: string, existing: readonly Record<string, unknown
 function appendAudit(db: Database, action: AuditEntry["action"], table: string, id: string, summary: string, firmId?: string) {
   if (!db.audit) db.audit = [];
   db.audit.unshift({
-    audit_id: nextId("A", db.audit as unknown as Record<string, unknown>[], "audit_id"),
+    // Not nextId(): that counts the local cache, so a stale or empty cache
+    // regenerates an audit_id that already exists remotely. audit_log has no
+    // UPDATE policy, so the colliding upsert was silently discarded and the
+    // entry never reached the database. Never rendered -- the Audit page shows
+    // target_id, not audit_id.
+    audit_id: crypto.randomUUID(),
     ts: new Date().toISOString(),
     role: getRole(),
     action,
     target_table: table,
     target_id: id,
     summary,
-    firm_id: firmId,
-    actor: getSessionEmail() ?? undefined
+    firm_id: firmId
   });
   if (db.audit.length > 500) db.audit.length = 500;
 }
@@ -390,6 +411,30 @@ export function commit(
   }
   appendAudit(db, opts.action, opts.table, opts.id, opts.summary, opts.table === "firms" ? opts.id : opts.firmId);
   writeRaw(db);
+
+  // Single-row edits write just that row. "*" ids (CSV/JSON import, reset) still
+  // need the whole-dataset swap.
+  const rowAction = opts.action === "create" || opts.action === "update" || opts.action === "delete" ? opts.action : null;
+
+  if (rowAction && opts.table === "vocab" && opts.id !== "*") {
+    const terms = db.vocab[opts.id as keyof Database["vocab"]] ?? [];
+    const audit = db.audit[0];
+    queueSave(async () => {
+      await writeVocabKey(opts.id, terms);
+      if (audit) await writeRow("audit", "create", audit.audit_id, audit as unknown as Record<string, unknown>);
+    });
+    return;
+  }
+
+  if (rowAction && opts.id !== "*" && isDatasetKey(opts.table)) {
+    const rows = db[opts.table] as unknown as Record<string, unknown>[];
+    const row = rows.find((r) => r[PRIMARY_KEY[opts.table as ApiTableKey]] === opts.id);
+    // ponytail: the parent firm's last_updated_ts bump above stays local on
+    // child-table edits. Add a second upsert here if that timestamp has to be
+    // exact remotely.
+    queueRowSave(opts.table, rowAction, opts.id, row, db.audit[0]);
+    return;
+  }
   queueRemoteSave(db);
 }
 
@@ -409,19 +454,7 @@ export function setRole(role: Role) {
 export function setEntryRole(role: Role) {
   if (typeof window === "undefined") return;
   window.sessionStorage.setItem(ROLE_ENTRY_KEY, role);
-  if (role !== "Analyst") window.sessionStorage.removeItem(FIRM_ENTRY_KEY);
   setRole(role);
-}
-
-export function getEntryFirmId(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.sessionStorage.getItem(FIRM_ENTRY_KEY);
-}
-
-export function setEntryFirmId(firmId: string | null) {
-  if (typeof window === "undefined") return;
-  if (firmId) window.sessionStorage.setItem(FIRM_ENTRY_KEY, firmId);
-  else window.sessionStorage.removeItem(FIRM_ENTRY_KEY);
 }
 
 export function ensurePublicEntryRole() {

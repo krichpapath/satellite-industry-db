@@ -2,10 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { loadDb, commit, nextId } from "@/lib/store";
+import { loadDb, commit, nextId, currentRemoteSave } from "@/lib/store";
 import type { Firm } from "@/lib/schema";
 import { OWNERSHIP_TYPES, PROVINCE_OPTIONS, rolePermissions } from "@/lib/schema";
-import { apiConfigured, createFirm as createFirmApi } from "@/lib/api";
 import { Card, SectionTitle, Field, Input, Select, Button, Grid, LockedNote } from "./ui";
 import { useRole } from "@/lib/store";
 import { ProvinceCombobox } from "./province-combobox";
@@ -15,7 +14,6 @@ export function FirmForm({ initial }: { initial?: Firm }) {
   const permissions = rolePermissions(useRole());
   const editing = !!initial;
   const [saving, setSaving] = useState(false);
-  const [saveState, setSaveState] = useState("");
   const [form, setForm] = useState<Firm>(
     initial ?? {
       firm_id: "",
@@ -48,7 +46,6 @@ export function FirmForm({ initial }: { initial?: Firm }) {
       return;
     }
     setSaving(true);
-    setSaveState("");
 
     if (editing) {
       commit(
@@ -59,6 +56,11 @@ export function FirmForm({ initial }: { initial?: Firm }) {
           );
         }
       );
+      // Await the write before navigating, exactly as the create branch does.
+      // Without it the PATCH is still in flight when the route changes, so
+      // closing the tab in that window drops the edit with no banner -- the
+      // save badge and banner never get a chance to report it.
+      await currentRemoteSave();
       router.push(`/companies/${form.firm_id}`);
       setSaving(false);
       return;
@@ -66,44 +68,28 @@ export function FirmForm({ initial }: { initial?: Firm }) {
 
     try {
       const db2 = loadDb();
-      const localId = nextId("F", db2.firms.map((f) => ({ firm_id: f.firm_id })), "firm_id");
-      let savedFirm: Firm = {
+      const savedFirm: Firm = {
         ...form,
-        firm_id: localId,
+        firm_id: nextId("F", db2.firms.map((f) => ({ firm_id: f.firm_id })), "firm_id"),
         last_updated_ts: new Date().toISOString()
       };
-      let summary = `Created company ${form.firm_name}`;
 
-      if (apiConfigured()) {
-        try {
-          savedFirm = await createFirmApi(savedFirm);
-          summary = `Created company ${form.firm_name} via API`;
-          setSaveState(`Saved company ${savedFirm.firm_id}. Dataset sync will keep linked tabs aligned.`);
-        } catch (error) {
-          const reason = error instanceof Error ? error.message : "unknown API error";
-          console.warn("Company create failed remotely; saved locally instead.", error);
-          setSaveState(`Remote save failed: ${reason}. Saved locally for continuity.`);
-        }
-      } else {
-        setSaveState("Saved company locally.");
-      }
-
+      // commit() writes the row to Supabase itself now; a failure surfaces in
+      // the shell's save banner rather than being swallowed here.
       commit(
-        { action: "create", table: "firms", id: savedFirm.firm_id, summary },
+        { action: "create", table: "firms", id: savedFirm.firm_id, summary: `Created company ${form.firm_name}` },
         (d) => {
-          d.firms = [
-            ...d.firms.filter((f) => f.firm_id !== savedFirm.firm_id),
-            savedFirm
-          ];
+          d.firms = [...d.firms.filter((f) => f.firm_id !== savedFirm.firm_id), savedFirm];
         }
       );
+      await currentRemoteSave();
       router.push(`/companies/${savedFirm.firm_id}`);
     } finally {
       setSaving(false);
     }
   }
 
-  function onDelete() {
+  async function onDelete() {
     if (!editing) return;
     if (!confirm(`Delete ${form.firm_name}? All linked records will also be removed.`)) return;
     commit(
@@ -122,11 +108,15 @@ export function FirmForm({ initial }: { initial?: Firm }) {
         d.esg = d.esg.filter((r) => r.firm_id !== form.firm_id);
       }
     );
+    // Same reason as the edit branch, and the failure here is worse: a delete
+    // that never reaches Supabase removes the company locally while it lives
+    // on remotely, so the next sync resurrects it.
+    await currentRemoteSave();
     router.push("/companies");
   }
 
   if (editing && !permissions.canEdit) return <LockedNote min="Admin" />;
-  if (!editing && !permissions.canCreateCompany) return <LockedNote min="Admin" />;
+  if (!editing && !permissions.canCreateCompany) return <LockedNote min="Analyst" />;
 
   return (
     <>
@@ -196,7 +186,6 @@ export function FirmForm({ initial }: { initial?: Firm }) {
               />
             </Field>
           </Grid>
-          {saveState && <div style={{ marginTop: 12, fontSize: 13, color: "var(--ink-soft)" }}>{saveState}</div>}
         </Card>
 
         <div className="firm-form-actions" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>

@@ -39,7 +39,7 @@ import {
   normalizeSystem
 } from "@/lib/component-taxonomy";
 import { richTextToPlainText, sanitizeRichText } from "@/lib/rich-text";
-import { Badge, Button, EmptyState, Field, Input, Modal, Select, Textarea } from "./ui";
+import { Badge, Button, EmptyState, Field, Input, Modal, Pagination, Select, Textarea } from "./ui";
 
 type ComponentForm = ProductService;
 type SortMode = "name:asc" | "name:desc" | "trl:desc" | "trl:asc" | "newest";
@@ -172,7 +172,7 @@ function CardDescription({ html }: { html?: string }) {
   const safe = sanitizeRichText(html);
   if (!safe) return <div className="catalog-card__description catalog-card__description--empty">No description</div>;
   // ponytail: plain-text length heuristic instead of measuring rendered height.
-  const long = richTextToPlainText(html).length > 220;
+  const long = richTextToPlainText(html).length > 180;
   return (
     <div>
       <div
@@ -488,23 +488,28 @@ function ComponentRecordEditor({
 
 export function ComponentRecordsPanel({
   rows,
-  firmId,
-  canManage
+  firmId
 }: {
   rows: ProductService[];
   firmId: string;
-  canManage?: boolean;
 }) {
   const role = useRole();
   const permissions = rolePermissions(role);
-  const canEditRows = canManage ?? permissions.canEdit;
+  const canAddRows = permissions.canAddComponent;
+  const canEditRows = permissions.canEdit;
 
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<ProductService | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortMode, setSortMode] = useState<SortMode>("name:asc");
 
-  const groups = useMemo(() => {
+  const PAGE_SIZE = 12;
+  const [page, setPage] = useState(1);
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, sortMode]);
+
+  const sorted = useMemo(() => {
     const needle = searchTerm.trim().toLowerCase();
     const filtered = needle
       ? rows.filter((row) =>
@@ -524,7 +529,7 @@ export function ComponentRecordsPanel({
 
     const trlNum = (r: ProductService) => (typeof r.product_trl === "number" ? r.product_trl : -1);
     const idNum = (r: ProductService) => Number(r.product_id.replace(/\D+/g, "")) || 0;
-    const sorted = [...filtered].sort((a, b) => {
+    return [...filtered].sort((a, b) => {
       switch (sortMode) {
         case "name:desc":
           return alphaCompare(componentRowLabel(b), componentRowLabel(a));
@@ -538,16 +543,22 @@ export function ComponentRecordsPanel({
           return alphaCompare(componentRowLabel(a), componentRowLabel(b));
       }
     });
+  }, [rows, searchTerm, sortMode]);
 
+  const visibleCount = sorted.length;
+  const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount);
+
+  // Paginate the flat sorted list, then group the page's rows by system.
+  const groups = useMemo(() => {
+    const pageRows = sorted.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
     const map = new Map<string, ProductService[]>();
-    for (const row of sorted) {
+    for (const row of pageRows) {
       const system = normalizeSystem(row.system);
       map.set(system, [...(map.get(system) ?? []), row]);
     }
     return [...map.entries()].sort(([a], [b]) => alphaCompare(a, b));
-  }, [rows, searchTerm, sortMode]);
-
-  const visibleCount = groups.reduce((sum, [, groupRows]) => sum + groupRows.length, 0);
+  }, [sorted, safePage]);
 
   function create(row: ComponentForm) {
     const db = loadDb();
@@ -615,7 +626,7 @@ export function ComponentRecordsPanel({
                 <option value="newest">Newest first</option>
               </Select>
             </div>
-            {canEditRows ? (
+            {canAddRows ? (
               <Button onClick={() => setCreating(true)} style={{ minHeight: 40 }}>
                 Add component
               </Button>
@@ -626,10 +637,11 @@ export function ComponentRecordsPanel({
         </div>
 
         {rows.length === 0 ? (
-          <EmptyState message={canEditRows ? "Add a component with a product name, taxonomy path, and description." : "No component records yet."} />
+          <EmptyState message={canAddRows ? "Add a component with a product name, taxonomy path, and description." : "No component records yet."} />
         ) : visibleCount === 0 ? (
           <EmptyState message="No component records match your search." />
         ) : (
+          <>
           <div className="catalog-body">
             {groups.map(([system, groupRows]) => (
               <section key={system} className="catalog-section" aria-label={`${system} components`}>
@@ -643,7 +655,12 @@ export function ComponentRecordsPanel({
                     const label = row.product_name || row.component_name;
                     const isPublic = (row.record_state ?? "public") === "public";
                     return (
-                      <article key={row.product_id} className="catalog-card" data-state={isPublic ? "public" : "draft"}>
+                      <article
+                        key={row.product_id}
+                        className="catalog-card"
+                        data-state={isPublic ? "public" : "draft"}
+                        data-system-kind={systemKind(row.system)}
+                      >
                         <div className="catalog-card__head">
                           <div className="catalog-card__title">
                             <strong>{label}</strong>
@@ -709,6 +726,8 @@ export function ComponentRecordsPanel({
               </section>
             ))}
           </div>
+          <Pagination page={safePage} pageCount={pageCount} onChange={setPage} />
+          </>
         )}
       </div>
 

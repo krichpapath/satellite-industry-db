@@ -1,15 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { ArrowRight, Boxes, MapPin, Search as SearchIcon, X } from "lucide-react";
 import { useDatabase, useRole } from "@/lib/store";
 import { rolePermissions, provinceLabel, OWNERSHIP_TYPES } from "@/lib/schema";
 import { normalizeSystem } from "@/lib/component-taxonomy";
-import { Card, Input, Button, Badge, EmptyState, Select, ownershipTone } from "@/components/ui";
+import { Card, Input, Button, Badge, EmptyState, Select, Pagination, ownershipTone, firmAccent } from "@/components/ui";
 import { SystemPill } from "@/components/component-records";
 
 type SortKey = "name" | "components" | "founded";
+const PAGE_SIZE = 12;
 
 export default function FirmsPage() {
   const db = useDatabase();
@@ -17,6 +18,7 @@ export default function FirmsPage() {
   const [q, setQ] = useState("");
   const [ownership, setOwnership] = useState("");
   const [sortBy, setSortBy] = useState<SortKey>("name");
+  const [page, setPage] = useState(1);
 
   const systemsByFirm = useMemo(() => {
     const map = new Map<string, string[]>();
@@ -56,6 +58,15 @@ export default function FirmsPage() {
       return a.firm_name.localeCompare(b.firm_name, undefined, { sensitivity: "base" });
     });
   }, [db.firms, q, ownership, sortBy, systemsByFirm, countByFirm]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [q, ownership, sortBy]);
+
+  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const pageStart = (currentPage - 1) * PAGE_SIZE;
+  const pagedRows = rows.slice(pageStart, pageStart + PAGE_SIZE);
 
   const provinceCount = new Set(db.firms.map((f) => f.province).filter((p) => p && p !== "Unidentified")).size;
 
@@ -129,12 +140,18 @@ export default function FirmsPage() {
         {rows.length === 0 ? (
           <EmptyState message="No companies match your filter." />
         ) : (
-          <div className="catalog-grid">
-            {rows.map((company) => {
+          <>
+            <div className="catalog-grid">
+            {pagedRows.map((company) => {
               const systems = systemsByFirm.get(company.firm_id) ?? [];
               const count = countByFirm.get(company.firm_id) ?? 0;
+              const accent = firmAccent(company.firm_id);
               return (
-                <article key={company.firm_id} className="catalog-card">
+                <article
+                  key={company.firm_id}
+                  className="catalog-card"
+                  style={{ "--system-fg": accent.fg, "--system-bg": accent.bg } as CSSProperties}
+                >
                   <div className="catalog-card__head">
                     <div className="catalog-card__title">
                       <Link
@@ -166,11 +183,9 @@ export default function FirmsPage() {
                     </div>
                   )}
                   <div className="catalog-card__actions">
-                    <Link href={`/companies/${company.firm_id}`} style={{ textDecoration: "none" }}>
-                      <Button variant="secondary" style={{ minHeight: 36, padding: "7px 12px" }}>
-                        View
-                        <ArrowRight size={14} aria-hidden="true" />
-                      </Button>
+                    <Link href={`/companies/${company.firm_id}`} className="view-button" aria-label={`View ${company.firm_name}`}>
+                      View
+                      <ArrowRight size={14} aria-hidden="true" />
                     </Link>
                     {permissions.canEdit && (
                       <Link href={`/companies/${company.firm_id}/edit`} style={{ textDecoration: "none" }}>
@@ -183,7 +198,9 @@ export default function FirmsPage() {
                 </article>
               );
             })}
-          </div>
+            </div>
+            <Pagination page={currentPage} pageCount={pageCount} onChange={setPage} />
+          </>
         )}
       </Card>
     </div>

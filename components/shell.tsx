@@ -1,17 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ensurePublicEntryRole, ensureSeeded, setEntryRole, syncDatasetFromApi, useRole } from "@/lib/store";
-import { setSessionEmail, useSessionEmail } from "@/lib/users";
+import { ensurePublicEntryRole, ensureSeeded, syncDatasetFromApi, useRole, useSyncStatus } from "@/lib/store";
 import { roleAtLeast, type Role } from "@/lib/schema";
 import {
   LayoutDashboard,
   Search,
   Building2,
-  BriefcaseBusiness,
   Network,
   GitBranch,
   Settings,
@@ -20,35 +18,29 @@ import {
   Database as DbIcon,
   ScrollText,
   BookOpenText,
-  LogIn,
-  LogOut,
-  ShieldCheck,
   ChevronRight,
   Menu,
   X
 } from "lucide-react";
 
-type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; min: Role; publicOnly?: boolean };
+type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; min: Role };
 
 const NAV: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard, min: "Public" },
   { href: "/search", label: "Search", icon: Search, min: "Public" },
   { href: "/companies", label: "Companies", icon: Building2, min: "Public" },
-  { href: "/login", label: "Sign in", icon: LogIn, min: "Public", publicOnly: true },
-  { href: "/my-company", label: "My Company", icon: BriefcaseBusiness, min: "Analyst" },
   { href: "/value-chain", label: "System Coverage", icon: GitBranch, min: "Admin" },
   { href: "/network", label: "Ecosystem", icon: Network, min: "Admin" },
   { href: "/gap-analysis", label: "Gap Analysis", icon: Target, min: "Admin" },
   { href: "/sources", label: "Sources", icon: DbIcon, min: "Admin" },
   { href: "/taxonomy", label: "Taxonomy", icon: BookOpenText, min: "Admin" },
-  { href: "/admin/access", label: "Access Control", icon: ShieldCheck, min: "Admin" },
-  { href: "/audit", label: "Audit", icon: ScrollText, min: "Analyst" },
+  { href: "/audit", label: "Audit", icon: ScrollText, min: "Admin" },
   { href: "/admin", label: "Admin", icon: Settings, min: "Admin" }
 ];
 
 const roleDesc: Record<Role, string> = {
   Public: "Read-only. Cannot edit any record.",
-  Analyst: "Company editor. Can maintain this company's own records.",
+  Analyst: "Can add companies and components. Cannot edit, delete, or export.",
   Admin: "Full access: audit, import/export, wipe."
 };
 
@@ -58,15 +50,37 @@ const roleColor: Record<Role, string> = {
   Admin: "var(--primary)"
 };
 
+// Every role can write now, but only Admin can reach /admin where the save
+// badge lives. A silent failure would leave an analyst believing their company
+// reached the database when it only reached localStorage.
+function SaveBanner() {
+  const { lastSave } = useSyncStatus();
+  if (!lastSave || lastSave.ok) return null;
+  return (
+    <div
+      role="alert"
+      style={{
+        marginBottom: 18,
+        padding: "10px 14px",
+        borderRadius: 10,
+        border: "1px solid var(--danger)",
+        background: "var(--danger-soft, rgba(220,38,38,0.08))",
+        color: "var(--danger)",
+        fontSize: 13
+      }}
+    >
+      <strong>Not saved to the database.</strong> This change exists only in this browser. {lastSave.error}
+    </div>
+  );
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
   const role = useRole();
-  const sessionEmail = useSessionEmail();
   const [hovered, setHovered] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const visibleNav = NAV.filter((item) => roleAtLeast(role, item.min) && (!item.publicOnly || role === "Public"));
+  const visibleNav = NAV.filter((item) => roleAtLeast(role, item.min));
   const bottomNav = visibleNav.filter((item) => ["/", "/search", "/companies"].includes(item.href));
 
   useEffect(() => {
@@ -80,14 +94,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [pathname]);
 
   function isActive(href: string) {
+    if (href === "/companies") return pathname?.startsWith("/companies") || pathname?.startsWith("/firms");
     return href === "/" ? pathname === "/" : pathname?.startsWith(href);
-  }
-
-  function changeAccount() {
-    setSessionEmail(null);
-    setEntryRole("Public");
-    setMobileOpen(false);
-    router.push("/login");
   }
 
   return (
@@ -193,13 +201,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             Active role
           </div>
           <div className="app-shell__role-card" style={{ borderColor: roleColor[role] }}>
-            <span>{role}</span>
+            {role}
           </div>
-          {sessionEmail && (
-            <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={sessionEmail}>
-              {sessionEmail}
-            </div>
-          )}
           <AnimatePresence mode="wait">
             <motion.div
               key={role}
@@ -212,7 +215,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {roleDesc[role]}
             </motion.div>
           </AnimatePresence>
-
         </div>
 
         <motion.nav
@@ -312,51 +314,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </motion.div>
             );
           })}
-          {role !== "Public" && (
-            <motion.div
-              key="logout"
-              variants={{
-                hidden: { opacity: 0, x: -10 },
-                visible: { opacity: 1, x: 0, transition: { duration: 0.24 } }
-              }}
-              onHoverStart={() => setHovered("__logout")}
-              onHoverEnd={() => setHovered(null)}
-              style={{ position: "relative" }}
-            >
-              <button
-                type="button"
-                onClick={changeAccount}
-                className="app-shell__account-action"
-                aria-label="Log out and choose another account"
-              >
-                <motion.span
-                  animate={{ scale: hovered === "__logout" ? 1.12 : 1, rotate: hovered === "__logout" ? -5 : 0 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 16 }}
-                  style={{ display: "inline-flex" }}
-                >
-                  <LogOut size={17} aria-hidden="true" />
-                </motion.span>
-                <span className="app-shell__label">Log out</span>
-                <AnimatePresence>
-                  {hovered === "__logout" && (
-                    <motion.span
-                      initial={{ opacity: 0, x: -4 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -4 }}
-                      transition={{ duration: 0.15 }}
-                      style={{ marginLeft: "auto", display: "inline-flex", color: "#b42318" }}
-                    >
-                      <ChevronRight size={14} />
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </button>
-            </motion.div>
-          )}
         </motion.nav>
       </aside>
 
-      <main className="app-shell__main" style={{ padding: "28px 32px", overflowX: "hidden" }}>{children}</main>
+      <main className="app-shell__main" style={{ padding: "28px 32px", overflowX: "hidden" }}>
+        <SaveBanner />
+        {children}
+      </main>
 
       <nav className="app-shell__bottom-nav" aria-label="Primary mobile navigation">
         {bottomNav.map((item) => {
@@ -383,7 +347,3 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-
-
-
-

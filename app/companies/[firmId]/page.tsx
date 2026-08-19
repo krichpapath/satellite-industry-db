@@ -19,8 +19,8 @@ import {
   Pencil,
   ShieldCheck
 } from "lucide-react";
-import { getEntryFirmId, useDatabase, useRole } from "@/lib/store";
-import { Card, SectionTitle, Grid, Stat, Badge, Button, EmptyState, Tabs } from "@/components/ui";
+import { useDatabase, useRole } from "@/lib/store";
+import { Card, SectionTitle, Grid, Stat, Badge, Button, EmptyState, Tabs, firmAccent } from "@/components/ui";
 import { SubTableEditor } from "@/components/subtable-editor";
 import { ComponentRecordsPanel, SystemPill } from "@/components/component-records";
 import { normalizeSystem } from "@/lib/component-taxonomy";
@@ -75,7 +75,7 @@ export default function FirmProfilePage({ params }: { params: Promise<{ firmId: 
   const { firmId } = use(params);
   const db = useDatabase();
   const role = useRole();
-  const canManage = role === "Admin" || (role === "Analyst" && getEntryFirmId() === firmId);
+  const canManage = role === "Admin";
   const firm = db.firms.find((f) => f.firm_id === firmId);
   const [tab, setTab] = useState<TabKey>("overview");
   const [exporting, setExporting] = useState(false);
@@ -153,6 +153,8 @@ export default function FirmProfilePage({ params }: { params: Promise<{ firmId: 
     ...(esg.length > 0 ? [{ key: "sustainability", label: "Sustainability", hint: "ESG indicators", icon: Leaf }] : [])
   ];
 
+  const accent = firmAccent(firmId);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
       <nav aria-label="Breadcrumb" className="breadcrumb">
@@ -165,17 +167,16 @@ export default function FirmProfilePage({ params }: { params: Promise<{ firmId: 
         </ol>
       </nav>
 
-      <header className="hero-band">
+      <header
+        className="hero-band"
+        style={{
+          background: `linear-gradient(120deg, hsl(${accent.hue} 55% 40%) 0%, hsl(${accent.hue} 60% 27%) 55%, hsl(${(accent.hue + 40) % 360} 50% 42%) 130%)`
+        }}
+      >
         <div style={{ position: "relative", zIndex: 1, display: "flex", justifyContent: "space-between", gap: 18, flexWrap: "wrap" }}>
           <div style={{ minWidth: 260, flex: "1 1 320px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               <h1 style={{ margin: 0, fontSize: 30, fontWeight: 650, letterSpacing: -0.4 }}>{firm.firm_name}</h1>
-              {canManage && (
-                <span style={{ ...CHIP_STYLE, background: "rgba(74,222,128,0.16)", borderColor: "rgba(74,222,128,0.45)" }}>
-                  <span className="pulse-dot" aria-hidden="true" />
-                  You manage this company
-                </span>
-              )}
             </div>
             <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
               <span style={CHIP_STYLE}>
@@ -253,13 +254,15 @@ export default function FirmProfilePage({ params }: { params: Promise<{ firmId: 
           <SectionTitle
             hint={
               canManage
-                ? `${products.length - draftCount} public and ${draftCount} draft record(s). Add, edit, or remove your company's components below.`
-                : `${products.length} public component record(s).`
+                ? `${products.length - draftCount} public and ${draftCount} draft record(s). Add, edit, or remove components below.`
+                : role === "Analyst"
+                  ? `${products.length} public component record(s). You can add a component below.`
+                  : `${products.length} public component record(s).`
             }
           >
             Component Catalog
           </SectionTitle>
-          <ComponentRecordsPanel rows={products} firmId={firmId} canManage={canManage} />
+          <ComponentRecordsPanel rows={products} firmId={firmId} />
         </Card>
       )}
       {tab === "capabilities" && (
@@ -454,7 +457,6 @@ function OverviewTab({
                   <span style={{ fontSize: 12, color: "var(--muted)", whiteSpace: "nowrap" }}>{new Date(a.ts).toLocaleString()}</span>
                   <Badge tone={a.action === "delete" ? "danger" : a.action === "create" ? "success" : "neutral"}>{a.action}</Badge>
                   <span style={{ fontSize: 13, color: "var(--ink)" }}>{a.summary}</span>
-                  {a.actor && <span style={{ fontSize: 12, color: "var(--muted)" }}>by {a.actor}</span>}
                 </div>
               ))}
             </div>

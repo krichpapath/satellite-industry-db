@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, ArrowUpDown, Boxes, MapPin, Search as SearchIcon, SlidersHorizontal, X } from "lucide-react";
@@ -13,7 +13,8 @@ import {
   Field,
   Grid,
   Button,
-  Badge
+  Badge,
+  Pagination
 } from "@/components/ui";
 import { OWNERSHIP_TYPES } from "@/lib/schema";
 import { COMPONENT_SYSTEMS, componentsForModule, modulesForSystem } from "@/lib/component-taxonomy";
@@ -22,6 +23,7 @@ import { SystemPill } from "@/components/component-records";
 import { ownershipTone } from "@/components/ui";
 
 type SortKey = "company" | "province" | "components";
+const PAGE_SIZE = 8;
 
 function compareText(a: string, b: string) {
   return a.localeCompare(b, undefined, { sensitivity: "base", numeric: true });
@@ -62,6 +64,7 @@ export default function SearchPage() {
   const [ownership, setOwnership] = useState("");
   const [province, setProvince] = useState("");
   const [sortBy, setSortBy] = useState<SortKey>("company");
+  const [page, setPage] = useState(1);
 
   const modules = modulesForSystem(system);
   const componentOptions = componentsForModule(system, module);
@@ -138,6 +141,15 @@ export default function SearchPage() {
     province: "Province A-Z",
     components: "Most components"
   };
+
+  useEffect(() => {
+    setPage(1);
+  }, [keyword, system, module, componentName, ownership, province, sortBy]);
+
+  const pageCount = Math.max(1, Math.ceil(results.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const pageStart = (currentPage - 1) * PAGE_SIZE;
+  const pagedResults = results.slice(pageStart, pageStart + PAGE_SIZE);
 
   const activeFilters = [
     keyword.trim() ? { key: "keyword", label: `Keyword: ${keyword.trim()}`, clear: () => setKeyword("") } : null,
@@ -300,7 +312,7 @@ export default function SearchPage() {
 
       <Card className="search-results-card">
         <div className="search-result-header">
-          <SectionTitle hint={`Sorted by ${sortLabels[sortBy]}.`}>
+          <SectionTitle hint={`Sorted by ${sortLabels[sortBy]}. Showing ${results.length === 0 ? 0 : pageStart + 1}-${Math.min(pageStart + PAGE_SIZE, results.length)} of ${results.length}.`}>
             Results
           </SectionTitle>
         </div>
@@ -317,7 +329,7 @@ export default function SearchPage() {
             </div>
           ) : (
             <div className="search-result-list">
-              {results.map((company) => {
+              {pagedResults.map((company) => {
                 const companyProducts = productsByFirm.get(company.firm_id) ?? [];
                 const hasKeyword = keyword.trim().length > 0;
                 const keywordMatchedProducts = hasKeyword
@@ -400,6 +412,7 @@ export default function SearchPage() {
                   </motion.article>
                 );
               })}
+              <Pagination page={currentPage} pageCount={pageCount} onChange={setPage} />
             </div>
           )}
         </div>

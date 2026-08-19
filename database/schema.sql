@@ -1,6 +1,21 @@
 -- Satellite Industry Database v2 reference schema.
--- Target: Amazon RDS PostgreSQL behind API Gateway + Lambda.
--- This file is safe to rerun for table/index creation. It does not seed fake data.
+--
+-- !! STALE -- DO NOT RUN AGAINST SUPABASE !!
+--
+-- This file drifted from the deployed database. products_services below still
+-- declares the OLD taxonomy (value_chain_stage, technology_intensity,
+-- sia_category, itu_service_class, orbit_type). The live table uses
+-- system / module / component_name.
+--
+-- The drift happened because the Lambda applied its own embedded SCHEMA_SQL at
+-- runtime (backend-lambda/index.mjs) instead of this file, and only that copy
+-- was kept current.
+--
+-- For the Supabase migration, pg_dump from RDS is the source of truth --
+-- see database/MIGRATION_NOTES.md. Running this file would build the old schema
+-- and the frontend would not match it.
+--
+-- Kept only as the v2 design reference. Delete once the AWS teardown is done.
 
 CREATE TABLE IF NOT EXISTS data_sources (
   source_id TEXT PRIMARY KEY,

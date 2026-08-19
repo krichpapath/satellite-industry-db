@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Building2, Layers, MapPin, Satellite, Boxes } from "lucide-react";
 import { ensurePublicEntryRole, useDatabase, useDbReady } from "@/lib/store";
-import { Card, Grid, SectionTitle, Badge, EmptyState } from "@/components/ui";
+import { Card, Grid, SectionTitle, Badge, EmptyState, Pagination } from "@/components/ui";
 import { ThailandMap } from "@/components/thailand-map";
 import { COMPONENT_SYSTEMS } from "@/lib/component-taxonomy";
 
@@ -86,6 +86,8 @@ type ComponentGroup = {
 function recordLabel(count: number) {
   return count === 1 ? "record" : "records";
 }
+
+const EXPLORER_PAGE_SIZE = 6;
 
 function ComponentRecordBreakdown({
   groups,
@@ -582,10 +584,19 @@ function SystemRecordsExplorer({
   const defaultSystemName = systems.find((system) => system.count > 0)?.name ?? systems[0]?.name ?? "";
   const activeName = selected ?? defaultSystemName;
   const activeSystem = systems.find((system) => system.name === activeName) ?? systems[0];
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [activeName]);
 
   if (!activeSystem) return <ComponentRecordBreakdown groups={groups} />;
 
   const activeGroups = groups.filter((group) => group.system === activeSystem.name);
+  const pageCount = Math.max(1, Math.ceil(activeGroups.length / EXPLORER_PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const pageStart = (currentPage - 1) * EXPLORER_PAGE_SIZE;
+  const pagedGroups = activeGroups.slice(pageStart, pageStart + EXPLORER_PAGE_SIZE);
 
   return (
     <div style={{ display: "grid", gap: 14, minWidth: 0 }}>
@@ -648,7 +659,8 @@ function SystemRecordsExplorer({
             </div>
             <Badge tone="accent"><span className="tabular" style={{ whiteSpace: "nowrap" }}>{activeSystem.count} {recordLabel(activeSystem.count)}</span></Badge>
           </div>
-          <ComponentRecordBreakdown groups={activeGroups} />
+          <ComponentRecordBreakdown groups={pagedGroups} />
+          <Pagination page={currentPage} pageCount={pageCount} onChange={setPage} />
         </div>
       </div>
     </div>

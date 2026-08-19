@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRole } from "@/lib/store";
 import { roleAtLeast, type Role } from "@/lib/schema";
 import { Badge as ShadBadge } from "@/components/ui/badge";
@@ -134,6 +135,63 @@ export function Button({
     >
       <span className="satdb-button__content">{children}</span>
     </ShadButton>
+  );
+}
+
+export function Pagination({
+  page,
+  pageCount,
+  onChange
+}: {
+  page: number;
+  pageCount: number;
+  onChange: (page: number) => void;
+}) {
+  if (pageCount <= 1) return null;
+
+  const items: (number | "ellipsis")[] = [];
+  for (let i = 1; i <= pageCount; i++) {
+    if (i === 1 || i === pageCount || Math.abs(i - page) <= 1) items.push(i);
+    else if (items[items.length - 1] !== "ellipsis") items.push("ellipsis");
+  }
+
+  return (
+    <nav className="pagination" aria-label="Pagination">
+      <button
+        type="button"
+        className="pagination__btn"
+        disabled={page <= 1}
+        onClick={() => onChange(page - 1)}
+        aria-label="Previous page"
+      >
+        <ChevronLeft size={15} aria-hidden="true" />
+      </button>
+      {items.map((item, index) =>
+        item === "ellipsis" ? (
+          <span key={`e${index}`} className="pagination__ellipsis" aria-hidden="true">…</span>
+        ) : (
+          <button
+            key={item}
+            type="button"
+            className="pagination__btn"
+            aria-current={item === page ? "page" : undefined}
+            aria-label={`Page ${item}`}
+            onClick={() => onChange(item)}
+          >
+            {item}
+          </button>
+        )
+      )}
+      <button
+        type="button"
+        className="pagination__btn"
+        disabled={page >= pageCount}
+        onClick={() => onChange(page + 1)}
+        aria-label="Next page"
+      >
+        <ChevronRight size={15} aria-hidden="true" />
+      </button>
+    </nav>
   );
 }
 
@@ -337,6 +395,15 @@ export function Badge({
 
 export function ownershipTone(type: string): "success" | "accent" | "warn" | "neutral" {
   return type === "Local" ? "success" : type === "Foreign" ? "accent" : type === "JV" ? "warn" : "neutral";
+}
+
+// Deterministic per-firm accent: hash the id, spread hues with the golden angle
+// so sequential ids (F005, F006, ...) land far apart on the color wheel.
+export function firmAccent(firmId: string): { hue: number; fg: string; bg: string } {
+  let h = 0;
+  for (const ch of firmId) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const hue = Math.round(h * 137.508) % 360;
+  return { hue, fg: `hsl(${hue} 55% 38%)`, bg: `hsl(${hue} 65% 94%)` };
 }
 
 export function Stat({ label, value, hint, className = "", accent }: { label: string; value: React.ReactNode; hint?: string; className?: string; accent?: string }) {
