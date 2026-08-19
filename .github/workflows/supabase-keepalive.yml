@@ -1,0 +1,49 @@
+# Supabase free-tier projects pause after 7 days with no API requests, and they
+# do not come back on their own -- someone has to restore the project from the
+# dashboard. Any request resets that clock, so this makes one cheap read a day.
+#
+# ponytail: a keep-alive ping, not a guarantee. Two known ceilings:
+#   1. GitHub disables scheduled workflows in a repository that has had no
+#      activity for 60 days, which would silently stop this too.
+#   2. Supabase decides what counts as activity and could change it.
+# If the data actually matters, Supabase Pro removes pausing outright and is the
+# real fix; this is the free approximation.
+
+name: Supabase keep-alive
+
+on:
+  schedule:
+    # 02:17 UTC daily. Odd minute on purpose: GitHub delays cron jobs scheduled
+    # on the hour, when everyone else's jobs run.
+    - cron: "17 2 * * *"
+  workflow_dispatch: # so you can run it by hand from the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read one row from Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::SUPABASE_URL / SUPABASE_ANON_KEY repository secrets are not set."
+            echo "Settings -> Secrets and variables -> Actions -> New repository secret."
+            exit 1
+          fi
+
+          code=$(curl -s -o /tmp/body -w "%{http_code}" --max-time 30 \
+            "$SUPABASE_URL/rest/v1/firms?select=firm_id&limit=1" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY")
+
+          echo "HTTP $code"
+          # Fail loudly. A keep-alive that quietly stops working is worse than
+          # none, because you would still believe the project is being pinged.
+          if [ "$code" != "200" ]; then
+            echo "::error::Supabase ping failed with HTTP $code"
+            cat /tmp/body
+            exit 1
+          fi
+          echo "Supabase is awake."
