@@ -8,7 +8,6 @@ tsconfig.tsbuildinfo
 
 # Reference documents, old prototypes, and local backend packaging
 docs/
-backend-lambda/
 database/
 tools/
 start.cmd

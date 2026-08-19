@@ -38,9 +38,8 @@ Then run `.\start.cmd` again. If `npm.cmd` is not available on a fresh checkout,
 - `app/` - Next.js App Router pages
 - `components/` - shared UI and form components
 - `lib/` - schema, seed data, API client, and browser store
-- `backend-lambda/` - AWS Lambda API package and deployment zip
-- `database/` - PostgreSQL schema, seed SQL, and migration notes
-- `tools/` - local utility scripts, including API test seeding
+- `database/` - Supabase migrations, schema, and migration notes
+- `tools/` - local utility scripts (`check-schema.cjs`)
 - `docs/` - research documents and old prototypes
 
 ## Vercel
@@ -51,9 +50,7 @@ Standard Next.js app on Vercel. Build command:
 npm.cmd run build
 ```
 
-The backend is **Supabase** (PostgREST over PostgreSQL). The AWS path below is
-retired — API Gateway, Lambda and RDS are no longer used, and
-`NEXT_PUBLIC_API_BASE_URL` is not read by any code.
+The backend is **Supabase** (PostgREST over PostgreSQL).
 
 ```text
 Vercel frontend -> Supabase PostgREST -> PostgreSQL
@@ -98,59 +95,12 @@ Database migrations must already be applied, in this order:
 `database/supabase-migration.sql`, `database/supabase-writes.sql`,
 `database/supabase-drop-account-policies.sql`. See `docs/TEST_PLAN.md`.
 
-## AWS Database V2 (RETIRED — historical reference only)
-
-> Superseded by Supabase on 2026-07-17. **Do not run the commands below.** The
-> endpoints point at the old API Gateway / Lambda / RDS stack, which is no
-> longer the source of truth; anything they touch is either gone or stale. Kept
-> only to document how the v2 schema was originally built. For current setup see
-> **Vercel** above and `database/MIGRATION_NOTES.md`.
-
-Reference files:
-
-- `database/schema.sql` - empty PostgreSQL schema, constraints, indexes, and comments
-- `database/seed-example-data.sql` - idempotent migration for current example/mock data
-- `database/MIGRATION_NOTES.md` - mapping notes, row counts, safe execution order
-
-Safe empty-database setup order:
-
-```powershell
-# 1. Confirm Lambda can reach RDS
-Invoke-RestMethod -Method Get -Uri "https://60tprkt5qh.execute-api.ap-southeast-1.amazonaws.com/health"
-
-# 2. Check whether old prototype tables already exist
-Invoke-RestMethod -Method Get -Uri "https://60tprkt5qh.execute-api.ap-southeast-1.amazonaws.com/admin/schema-status"
-
-# 3. If schema-status reports integer ID columns but all counts are 0,
-#    replace the empty prototype schema with v2.
-Invoke-RestMethod -Method Post -Uri "https://60tprkt5qh.execute-api.ap-southeast-1.amazonaws.com/admin/replace-empty-v2"
-
-# 4. Create v2 tables. This is also safe after replace-empty-v2.
-Invoke-RestMethod -Method Post -Uri "https://60tprkt5qh.execute-api.ap-southeast-1.amazonaws.com/admin/init-v2"
-
-# 5. Apply database/seed-example-data.sql only after confirming the target DB is empty
-#    or that updating the same public IDs is intended.
-```
-
-Do not run destructive database commands against AWS without checking row counts first. `/admin/replace-empty-v2` refuses to replace the schema if any known table has rows.
-
-Current API surface:
-
-- `GET /health`
-- `GET /admin/schema-status`
-- `POST /admin/replace-empty-v2`
-- `POST /admin/init-v2`
-- `GET /dataset`
-- `PUT /dataset`
-- CRUD routes for `/firms`, `/products`, `/size-finance`, `/tech`, `/facilities`, `/hr`, `/linkages`, `/collaborations`, `/esg`, `/sources`
-- `GET /vocab`, `PUT /vocab`
-- legacy-compatible `/contracts`
-
 ## Routes
 
 - `/` - Public entry and dashboard
 - `/analysis` - Analyst entry; selects the Analyst role and opens Companies
 - `/coolAdmin` - Admin entry; selects the Admin role and opens Companies
+- `/public` - resets back to the Public role (testing convenience)
 - `/companies` - firm anchor records (old `/firms/*` URLs redirect here)
 - `/companies/new` - expert firm intake flow
 - `/companies/[firmId]` - firm overview and domain completeness
@@ -158,7 +108,7 @@ Current API surface:
 - `/sources` - provenance register
 - `/taxonomy` - controlled vocabulary management
 - `/audit` - audit trail
-- `/admin` - JSON backup, CSV import prototype, reset/wipe tools
+- `/admin` - sync status, record counts, .xlsx and JSON exports (import hidden behind IMPORT_ENABLED)
 
 ## Product Notes
 

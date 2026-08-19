@@ -2,98 +2,112 @@
 
 ## 1. Purpose
 
-This document explains the current satellite database system. It covers the working data path, the user flow, the deployed services, and the proof checks used before handover.
+This document explains the current system: the data path, the roles, the
+deployed services, and the checks to run before a deploy.
 
-The system stores firm records, product records, capability records, source records, controlled vocab terms, audit records, and retained contract metadata.
+The system stores firm records, product/component records, capability records,
+source records, controlled vocab terms, and an append-only audit log.
 
-## 2. Current System Flow
+## 2. Architecture
 
 ```text
-Vercel frontend -> API Gateway HTTP API -> AWS Lambda -> Amazon RDS PostgreSQL
+Browser (Next.js on Vercel) -> Supabase PostgREST -> PostgreSQL
 ```
 
-The frontend never connects to the database. The browser calls API Gateway. API Gateway forwards the request to Lambda. Lambda reads and writes PostgreSQL.
+The browser talks to Supabase directly with the publishable ("anon") key. There
+is no application server of our own. Row-level security in PostgreSQL is the
+only thing standing between a request and the data.
 
-## 3. Current Runtime Settings
+Superseded 2026-07-17: the previous path was
+`Vercel -> API Gateway -> AWS Lambda -> Amazon RDS`. That stack is retired and
+its resources are shut down. The migration record is in
+`database/MIGRATION_NOTES.md`.
 
 | Item | Value |
-| --- | --- |
-| API base URL | https://60tprkt5qh.execute-api.ap-southeast-1.amazonaws.com |
-| AWS Region | ap-southeast-1, Asia Pacific, Singapore |
-| Frontend env var | NEXT_PUBLIC_API_BASE_URL |
-| Frontend stack | Next.js App Router, TypeScript, Tailwind CSS |
-| Backend runtime | Node.js Lambda |
-| Database engine | Amazon RDS for PostgreSQL |
+|---|---|
+| Frontend | Next.js App Router, deployed on Vercel |
+| Backend | Supabase PostgREST |
+| Database | Supabase PostgreSQL (`ap-southeast-1`) |
+| Client env vars | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` |
 
-## 4. User Data Flow
+`NEXT_PUBLIC_*` values are inlined at build time. Changing them in Vercel has no
+effect until the next build.
 
-| Step | Action | System behavior |
-| --- | --- | --- |
-| 1 | User opens the app | The frontend loads NEXT_PUBLIC_API_BASE_URL. |
-| 2 | Frontend loads data | The app calls GET /dataset and hydrates the browser store. |
-| 3 | User creates or edits records | The browser updates local state and sends API writes. |
-| 4 | Lambda validates and maps fields | The API prepares rows and uses PostgreSQL upsert or delete operations. |
-| 5 | RDS stores records | Foreign keys keep firm linked records aligned. |
-| 6 | User refreshes | The app reloads from AWS through GET /dataset. |
+## 3. Data path
 
-## 5. Current Data Scope
+| Step | What happens |
+|---|---|
+| 1 | On load, `syncDatasetFromApi()` reads every table and folds `vocab_terms` into the app's `vocab` shape. |
+| 2 | The result is written to `localStorage` and rendered from there. |
+| 3 | An edit updates `localStorage` first, so the UI never blocks on the network. |
+| 4 | `commit()` then writes **just the changed row** plus its audit entry (`writeRow` in `lib/api.ts`). |
+| 5 | A failed write raises the red "Not saved to the database" banner in the app shell. |
 
-| Data group | Main records |
-| --- | --- |
-| firms | Anchor table for satellite industry organizations. |
-| firm_size_finance | Current firm size, revenue, capacity, investment, incentives, and funding profile. |
-| products_services | Product and service portfolio with satellite taxonomy fields. |
-| technology_capability | Firm technology, TRL, R&D, patent, and digitalization capability rows. |
-| infrastructure_facility | Facilities, testing, simulation, manufacturing, and software capability. |
-| human_resource_profile | Technical workforce profile and skill gap data. |
-| supply_chain_linkage | Directed firm to firm supply chain and ecosystem edges. |
-| collaboration_network | Collaboration rows between firms and institutions. |
-| sustainability_esg | Energy, emissions, waste, and ESG certification profile. |
-| data_sources | Source registry for provenance and evidence. |
-| vocab_terms | Controlled vocabulary terms for frontend dropdowns. |
-| audit_log | Action history for governance and review evidence. |
-| contracts | Retained prototype contract metadata support. |
+The whole-dataset `replace_dataset()` RPC is only used by JSON import, CSV
+import, and reset. Per-row writes replaced it because the old model let a stale
+tab overwrite rows it had never seen.
 
-## 6. Setup Flow
+## 4. Roles
 
-| Step | Task | Command or value |
-| --- | --- | --- |
-| 1 | Set Lambda env vars | DB_HOST, DB_NAME, DB_PORT, DB_USER, DB_PASSWORD, CORS_ORIGIN. |
-| 2 | Check health | GET https://60tprkt5qh.execute-api.ap-southeast-1.amazonaws.com/health. |
-| 3 | Check schema | GET https://60tprkt5qh.execute-api.ap-southeast-1.amazonaws.com/admin/schema-status. |
-| 4 | Create tables | POST https://60tprkt5qh.execute-api.ap-southeast-1.amazonaws.com/admin/init-v2. |
-| 5 | Connect frontend | Set NEXT_PUBLIC_API_BASE_URL in Vercel for Preview and Production. |
-| 6 | Verify data flow | Open the app, load firms, create a test firm, and confirm the row appears through GET /firms. |
+Selected by entry URL. No accounts, no passwords.
 
-## 7. Proof Checks
+| URL | Role | Can |
+|---|---|---|
+| any page | Public | read only |
+| `/analysis` | Analyst | add companies and components |
+| `/coolAdmin` | Admin | everything, including delete, export, and `/audit` |
+| `/public` | Public | drop back down (testing convenience) |
 
-| Check | Pass condition |
-| --- | --- |
-| API health | GET /health returns ok true and db_time. |
-| Schema status | GET /admin/schema-status returns ok true. |
-| Dataset load | GET /dataset returns arrays for firms, products, tech, and other app tables. |
-| Frontend sync | The AWS banner shows connected state without schema errors. |
-| Create firm | POST /firms returns a firm_id and the row appears in GET /firms. |
-| Vercel build | npm.cmd run build completes without route or TypeScript errors. |
+The role lives in `localStorage` plus a `sessionStorage` entry flag, and is
+enforced entirely in the frontend (`rolePermissions` in `lib/schema.ts`, pinned
+by `lib/roles.test.ts`).
 
-## 8. Out Of Scope For Current Prototype
+**This is not a security boundary.** There is one database identity, its key is
+readable in the JS bundle, and `/coolAdmin` is reachable by anyone who types it.
+Adequate for a private prototype; not for a public deployment.
 
-| Item | Reason |
-| --- | --- |
-| Cognito login | Current frontend uses prototype roles. |
-| Secrets Manager | The handoff stores DB password in Lambda environment variables for the prototype. |
-| S3 contract file storage | The current contracts table stores metadata only. |
-| AWS WAF | No production edge protection is configured in the current prototype notes. |
-| RDS Proxy | Current Lambda connects directly to RDS. AWS recommends RDS Proxy for high connection volume. |
+## 5. Database migrations
 
-## 9. Source References
+Apply in this order:
 
-| Source | URL |
-| --- | --- |
-| draw.io export formats | https://www.drawio.com/docs/manual/export/export-diagram/ |
-| Amazon API Gateway HTTP APIs | https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api.html |
-| AWS Lambda with Amazon RDS | https://docs.aws.amazon.com/lambda/latest/dg/services-rds.html |
-| AWS Lambda VPC access | https://docs.aws.amazon.com/lambda/latest/dg/configuration-vpc.html |
-| Amazon VPC security groups | https://docs.aws.amazon.com/vpc/latest/userguide/creating-security-groups.html |
-| Amazon RDS for PostgreSQL | https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_PostgreSQL.html |
-| Vercel environment variables | https://vercel.com/docs/environment-variables |
+| File | Purpose |
+|---|---|
+| `database/supabase-migration.sql` | schema, RLS enabled, `replace_dataset()` |
+| `database/supabase-writes.sql` | anon write policies, drafts readable, audit append-only |
+| `database/supabase-drop-account-policies.sql` | removes the reverted account feature's policies |
+
+New RPCs need `NOTIFY pgrst, 'reload schema'`. Supabase preloads pg-safeupdate,
+so a bare `DELETE FROM` fails with 21000 — use `WHERE TRUE`.
+
+## 6. Pre-deploy checks
+
+```powershell
+npm.cmd test
+npm.cmd run typecheck
+npm.cmd run check:schema
+npm.cmd run build
+```
+
+`check:schema` compares the `COLUMNS` allowlist in `lib/api.ts` against the live
+schema. A column declared there that does not exist makes PostgREST reject every
+write to that table with PGRST204 — which surfaces as a save failure at runtime,
+not at build time. Run it after any schema change.
+
+Full per-role test matrix and results: `docs/TEST_PLAN.md`.
+
+## 7. Known gaps
+
+| Gap | Detail |
+|---|---|
+| No access control | Anyone with the URL can reach `/coolAdmin` and delete records. |
+| Three tables unreachable | `supply_chain_linkage`, `collaboration_network` and `firm_size_finance` have no UI path to a first row. See `docs/TEST_PLAN.md`. |
+| Import untested | `/admin` JSON and CSV import are hidden behind `IMPORT_ENABLED` in `app/admin/page.tsx`. |
+
+## 8. References
+
+| Topic | Link |
+|---|---|
+| Supabase row-level security | https://supabase.com/docs/guides/database/postgres/row-level-security |
+| PostgREST API | https://postgrest.org/en/stable/references/api.html |
+| Supabase JS client | https://supabase.com/docs/reference/javascript |
+| Next.js environment variables | https://nextjs.org/docs/app/guides/environment-variables |

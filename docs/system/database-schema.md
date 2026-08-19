@@ -218,9 +218,4 @@ Use the DBML file for the best dbdiagram.io result. Use the SQL file when you wa
 | Source | URL |
 | --- | --- |
 | draw.io export formats | https://www.drawio.com/docs/manual/export/export-diagram/ |
-| Amazon API Gateway HTTP APIs | https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api.html |
-| AWS Lambda with Amazon RDS | https://docs.aws.amazon.com/lambda/latest/dg/services-rds.html |
-| AWS Lambda VPC access | https://docs.aws.amazon.com/lambda/latest/dg/configuration-vpc.html |
-| Amazon VPC security groups | https://docs.aws.amazon.com/vpc/latest/userguide/creating-security-groups.html |
-| Amazon RDS for PostgreSQL | https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_PostgreSQL.html |
 | Vercel environment variables | https://vercel.com/docs/environment-variables |

@@ -6,10 +6,4 @@ tsconfig.tsbuildinfo
 !.env.example
 .codex
 # Keep docs/ trackable for GitHub. Dependency folders stay ignored by node_modules/.
-backend-lambda/function.zip
 
-# Retired AWS backend (Lambda / API Gateway / RDS), superseded by Supabase
-# 2026-07-17. Kept on disk for reference -- backend-lambda/node_modules/pg is
-# still the only Postgres client here, used for direct DB/RLS inspection.
-backend-lambda/
-docs/system/aws-services.md
