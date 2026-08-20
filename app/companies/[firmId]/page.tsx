@@ -497,9 +497,9 @@ function CapabilitiesTab({
           fields={[
             { name: "core_technology", label: "Core technology", type: "enum", options: db.vocab.core_technologies, required: true },
             { name: "trl_level", label: "TRL (1-9)", type: "number", required: true, min: 1, max: 9 },
-            { name: "rd_expenditure_mthb", label: "R&D expenditure (MTHB)", type: "number" },
-            { name: "rd_personnel", label: "R&D personnel", type: "number" },
-            { name: "patents_count", label: "Patents count", type: "number" },
+            { name: "rd_expenditure_mthb", label: "R&D expenditure (MTHB)", type: "number", min: 0 },
+            { name: "rd_personnel", label: "R&D personnel", type: "number", min: 0 },
+            { name: "patents_count", label: "Patents count", type: "number", min: 0 },
             { name: "patent_field", label: "Patent field", type: "text" },
             { name: "digitalization_level", label: "Digitalization (0-5)", type: "number", min: 0, max: 5 }
           ]}
@@ -549,7 +549,7 @@ function CapabilitiesTab({
           idPrefix="H"
           canManage={canManage}
           fields={[
-            { name: "technician_count", label: "Technicians", type: "number" },
+            { name: "technician_count", label: "Technicians", type: "number", min: 0 },
             { name: "skill_specialization", label: "Skill specialization", type: "text" },
             { name: "training_programs", label: "Training programs", type: "text" },
             { name: "skill_gap", label: "Skill gap", type: "text" }
@@ -648,7 +648,7 @@ function NetworkTab({
             { name: "partner_type", label: "Partner type", type: "enum", options: db.vocab.partner_types, required: true },
             { name: "partner_name", label: "Partner name", type: "text", required: true },
             { name: "collaboration_type", label: "Collaboration type", type: "enum", options: db.vocab.collab_types, required: true },
-            { name: "duration_years", label: "Duration (years)", type: "number" }
+            { name: "duration_years", label: "Duration (years)", type: "number", min: 0 }
           ]}
           display={[
             { key: "type", header: "Type", render: (c) => <Badge tone="accent">{c.partner_type}</Badge> },
@@ -683,9 +683,9 @@ function ESGTab({ esg, firmId, canManage }: { esg: SustainabilityESG[]; firmId: 
         idPrefix="E"
         canManage={canManage}
         fields={[
-          { name: "energy_consumption_mwh", label: "Energy (MWh)", type: "number" },
+          { name: "energy_consumption_mwh", label: "Energy (MWh)", type: "number", min: 0 },
           { name: "renewable_energy_ratio", label: "Renewable %", type: "number", min: 0, max: 100 },
-          { name: "carbon_emission_tco2", label: "CO2 (tCO2e)", type: "number" },
+          { name: "carbon_emission_tco2", label: "CO2 (tCO2e)", type: "number", min: 0 },
           { name: "waste_management_system", label: "Waste mgmt", type: "bool" },
           { name: "esg_certification", label: "ESG certification", type: "text" }
         ]}

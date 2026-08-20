@@ -21,6 +21,11 @@ import {
   modulesForSystem
 } from "@/lib/component-taxonomy";
 
+// min/max are not cosmetic: they must mirror the CHECK constraint on the
+// matching database column. validate() is the only thing enforcing them here
+// (this editor has no <form>, so the browser never runs native validation), and
+// a value the database rejects surfaces as the red "Not saved to the database"
+// banner rather than a field error the user can act on.
 export type FieldDef =
   | { name: string; label: string; type: "text"; required?: boolean }
   | { name: string; label: string; type: "number"; min?: number; max?: number; required?: boolean; nullable?: boolean }
