@@ -1,5 +1,7 @@
 "use client";
 
+import { alphaCompare } from "@/lib/component-taxonomy";
+
 import { useState } from "react";
 import { useDatabase, commit } from "@/lib/store";
 import {
@@ -36,10 +38,6 @@ const HINTS: Partial<Record<keyof Vocab, string>> = {
   component_modules: "Expert workbook Module list.",
   component_names: "Expert workbook Component list."
 };
-
-function alphaCompare(a: string, b: string) {
-  return a.localeCompare(b, undefined, { sensitivity: "base" });
-}
 
 export default function TaxonomyPage() {
   const db = useDatabase();

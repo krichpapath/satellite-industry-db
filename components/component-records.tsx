@@ -1,5 +1,7 @@
 "use client";
 
+import { alphaCompare } from "@/lib/component-taxonomy";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
 import { motion } from "framer-motion";
@@ -43,7 +45,7 @@ import { Badge, Button, EmptyState, Field, Input, Modal, Pagination, Select, Tex
 
 type ComponentForm = ProductService;
 type SortMode = "name:asc" | "name:desc" | "trl:desc" | "trl:asc" | "newest";
-type SystemKind = "payload" | "eps" | "adcs" | "cdh" | "ttc" | "stcs" | "propulsion" | "unknown";
+type SystemKind = "payload" | "eps" | "adcs" | "cdh" | "ttc" | "stcs" | "propulsion" | "ait" | "unknown";
 
 const SYSTEM_VISUALS: Record<SystemKind, {
   icon: React.ComponentType<{ size?: number }>;
@@ -56,12 +58,14 @@ const SYSTEM_VISUALS: Record<SystemKind, {
   ttc: { icon: Radio, label: "Telemetry, tracking, and command" },
   stcs: { icon: Layers3, label: "Structure and thermal control" },
   propulsion: { icon: Flame, label: "Propulsion" },
+  ait: { icon: PackagePlus, label: "Assembly, integration and testing" },
   unknown: { icon: CircleHelp, label: "Unidentified system" }
 };
 
 function systemKind(system: string): SystemKind {
   const normalized = normalizeSystem(system);
   if (normalized === UNIDENTIFIED_VALUE) return "unknown";
+  if (normalized.startsWith("AIT")) return "ait";
   if (normalized.includes("Payload")) return "payload";
   if (normalized.includes("Electrical Power") || normalized.includes("EPS")) return "eps";
   if (normalized.includes("ADCS")) return "adcs";
@@ -109,10 +113,6 @@ function SystemIconMark({ system }: { system: string }) {
 
 function formatProductTrl(value: ProductService["product_trl"]) {
   return value === undefined ? "Unidentified" : String(value);
-}
-
-function alphaCompare(a: string, b: string) {
-  return a.localeCompare(b, undefined, { sensitivity: "base" });
 }
 
 function componentRowLabel(row: ProductService) {

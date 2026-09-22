@@ -1,6 +1,6 @@
 import type { Database, Firm, OwnershipType, RecordState } from "./schema";
-import { DEFAULT_VOCAB } from "./schema";
-import { COMPONENT_SYSTEMS, cleanComponentLabel, findComponentPath, modulesForSystem, normalizeSystem } from "./component-taxonomy";
+import { mergeComponentVocab, DEFAULT_VOCAB } from "./schema";
+import { COMPONENT_SYSTEMS, normalizeComponentModule, cleanComponentLabel, findComponentPath, modulesForSystem, normalizeSystem } from "./component-taxonomy";
 import { sanitizeRichText } from "./rich-text";
 import { db, supabaseConfigured } from "./supabase";
 
@@ -181,7 +181,7 @@ export function normalizeVocab(rows: unknown[]): Database["vocab"] {
     if (terms?.length) out[key] = terms;
   }
 
-  return out;
+  return mergeComponentVocab(out);
 }
 
 function normalizeRows<T>(rows: unknown[], normalize: (row: RawRecord) => T): T[] {
@@ -212,7 +212,7 @@ function normalizeProduct(row: RawRecord): Database["products"][number] {
   const fallbackModule = fallbackSystem ? modulesForSystem(fallbackSystem)[0] ?? "" : "";
 
   const system = normalizeSystem(toString(row.system ?? row.orbit_type ?? path?.system, fallbackSystem));
-  const module = system === "Unidentified" ? "Unidentified" : toString(row.module ?? row.itu_service_class ?? path?.module, fallbackModule);
+  const module = system === "Unidentified" ? "Unidentified" : normalizeComponentModule(system, toString(row.module ?? row.itu_service_class ?? path?.module, fallbackModule), componentName);
   const normalizedComponentName = system === "Unidentified" || module === "Unidentified" ? "Unidentified" : componentName;
   const rawTrl = row.product_trl;
   const productTrl = rawTrl === "Unidentified"

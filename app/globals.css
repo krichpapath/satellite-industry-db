@@ -1617,7 +1617,10 @@ a {
 
 .component-system-pill[data-system-kind="stcs"],
 .component-system-mark[data-system-kind="stcs"],
-.catalog-card[data-system-kind="stcs"] {
+.catalog-card[data-system-kind="stcs"],
+.component-system-pill[data-system-kind="ait"],
+.component-system-mark[data-system-kind="ait"],
+.catalog-card[data-system-kind="ait"] {
   --system-bg: #f4f6f8;
   --system-fg: #475569;
   --system-border: #d9e0e8;

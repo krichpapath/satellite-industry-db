@@ -2,10 +2,10 @@
 
 import { useSyncExternalStore } from "react";
 import type { Database, Role, AuditEntry, RecordState } from "./schema";
-import { DEFAULT_VOCAB } from "./schema";
+import { mergeComponentVocab } from "./schema";
 import { SEED } from "./seed";
 import { apiConfigured, getDataset, saveDataset, writeRow, writeVocabKey, isDatasetKey, PRIMARY_KEY, type ApiTableKey } from "./api";
-import { COMPONENT_SYSTEMS, cleanComponentLabel, findComponentPath, modulesForSystem, normalizeSystem } from "./component-taxonomy";
+import { COMPONENT_SYSTEMS, normalizeComponentModule, cleanComponentLabel, findComponentPath, modulesForSystem, normalizeSystem } from "./component-taxonomy";
 import { sanitizeRichText } from "./rich-text";
 
 const KEY = "satdb.v3";
@@ -37,7 +37,7 @@ function migrateProducts(products: unknown, base: Database): Database["products"
       const componentName = cleanComponentLabel(String(row.component_name ?? "").trim()) || productName;
       const path = findComponentPath(componentName);
       const system = normalizeSystem(String(row.system ?? path?.system ?? fallbackSystem).trim());
-      const module = system === "Unidentified" ? "Unidentified" : String(row.module ?? path?.module ?? fallbackModule).trim();
+      const module = system === "Unidentified" ? "Unidentified" : normalizeComponentModule(system, String(row.module ?? path?.module ?? fallbackModule).trim(), componentName);
       const normalizedComponentName = system === "Unidentified" || module === "Unidentified" ? "Unidentified" : componentName;
       const rawTrl = row.product_trl;
       const productTrl = rawTrl === "Unidentified"
@@ -79,7 +79,7 @@ function migrate(db: unknown): Database {
     esg: d.esg ?? base.esg,
     sources: d.sources ?? base.sources,
     audit: d.audit ?? [],
-    vocab: { ...DEFAULT_VOCAB, ...(d.vocab ?? {}) }
+    vocab: mergeComponentVocab(d.vocab)
   };
 }
 
@@ -208,7 +208,7 @@ function remoteDb(remote: Database) {
     esg: remote.esg ?? [],
     sources: remote.sources ?? [],
     audit: remote.audit ?? [],
-    vocab: { ...DEFAULT_VOCAB, ...(remote.vocab ?? {}) }
+    vocab: mergeComponentVocab(remote.vocab)
   };
 }
 

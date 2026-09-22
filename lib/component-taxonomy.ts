@@ -62,7 +62,9 @@ export const SATELLITE_COMPONENT_TAXONOMY = {
       "• ยางซับแรงกระแทกบานพับ (Rubber Dampers): ซับแรงจังหวะกางสุด",
       "• ซิลิโคน RTV: ยางยึดแผ่นโซลาร์เซลล์รองรับการยืดหดจากความร้อน",
       "• กลไกล็อกแผงโซลาร์เซลล์ไว้กับตัวบัส HDRM (Hold-Down and Release Mechanism)",
-      "• ตัวสลักล็อกเมื่อแผงโซลาร์เซลล์กางออกสุดแล้ว Latching Mechanism"
+      "• ตัวสลักล็อกเมื่อแผงโซลาร์เซลล์กางออกสุดแล้ว Latching Mechanism",
+      "• ตัวเก็บประจุปล่อยกระแสสูงฉับพลัน (High-Current Discharge Capacitors)",
+      "• วงจรเซฟตี้ล็อกสองชั้นกันไฟกระชาก (Dual-Fault Tolerant Switches)"
     ],
     "Solar Array Drive Mechanism (SADM/SADA) (ระบบหมุนแผงโซลาร์)": [
       "• มอเตอร์หมุนแกนละเอียดชนิดไม่ใช้แปรงถ่าน (Stepper / Brushless DC Space Motor)",
@@ -76,7 +78,8 @@ export const SATELLITE_COMPONENT_TAXONOMY = {
       "• วงจรควบคุมการชาร์จ (MPPT Circuit)",
       "• ไอซีแปลงแรงดันไฟฟ้า (DC-DC Converters)",
       "• สวิตช์อิเล็กทรอนิกส์ (Solid-State Power Switches)",
-      "• วงจรป้องกันและจำกัดกระแสไฟ (Current Limiters)"
+      "• วงจรป้องกันและจำกัดกระแสไฟ (Current Limiters)",
+      "• ขั้วต่อสายไฟทนกระแสสูง (High-Reliability Power Connectors)"
     ],
     "Energy Storage(ชุดแบตเตอรี่)": [
       "• เซลล์แบตเตอรี่ลิเธียมไอออน (Li-ion Battery Cells)",
@@ -138,9 +141,10 @@ export const SATELLITE_COMPONENT_TAXONOMY = {
   "6. Structure & Thermal Control (STCS)(ระบบโครงสร้างและอุณหภูมิ)": {
     "Primary Structure(โครงสร้างหลัก)": [
       "• โครงหลักอะลูมิเนียมเกรดอวกาศ (Al 7075) / ไทเทเนียม",
-      "• วงแหวนแยกตัวจากจรวด (Separation Ring)",
-      "• สปริงดันดาวเทียม (Separation Pusher Springs): ดีดดาวเทียมออกจากจรวด",
-      "• โอริงหน้าสัมผัสจรวด (Interface O-Rings): กันกระแทกจุดเชื่อมต่อจรวด"
+      "แผงโซลาร์ Panel Aluminium Honeycomb",
+      "แผงโซลาร์ Panel CFRP Honeycomb",
+      "การทำ Anodize",
+      "การทำชิ้นงาน Bracket / Adapter / Housing / Insert : Aluminium, Titanium"
     ],
     "Electronics Packaging(การยึดแผงวงจร)": [
       "• น็อตเจาะรูระบายอากาศ (Vented Screws): ป้องกันอากาศขังในเกลียว",
@@ -152,6 +156,11 @@ export const SATELLITE_COMPONENT_TAXONOMY = {
       "• แผ่นระบายความร้อน (Radiators)",
       "• จาระบีนำความร้อน (Thermal Grease)",
       "• เทปแคปตอนหน้าดำ (Black Kapton Tape)"
+    ],
+    "ระบบดีดตัวดาวเทียม": [
+      "• วงแหวนแยกตัวจากจรวด (Separation Ring)",
+      "• สปริงดันดาวเทียม (Separation Pusher Springs): ดีดดาวเทียมออกจากจรวด",
+      "• โอริงหน้าสัมผัสจรวด (Interface O-Rings): กันกระแทกจุดเชื่อมต่อจรวด"
     ]
   },
   "7. Propulsion System(ระบบขับเคลื่อน)": {
@@ -166,6 +175,16 @@ export const SATELLITE_COMPONENT_TAXONOMY = {
       "• ไดอะแฟรม/ยางดันเชื้อเพลิง (Elastomeric Bladders): บีบดันเชื้อเพลิงในสภาวะไร้น้ำหนัก",
       "• โอริงซีลวาล์วและท่อ (Teflon/Viton Seals): กันสารเคมีกัดกร่อนรั่วซึม"
     ]
+  },
+  "8. AIT (การประกอบและทดสอบ)": {
+    "Mechanical Ground support Equipment": [
+      "Thermal Interface plate",
+      "Mass properties Interface Plate",
+      "Vibration Interface Plate",
+      "Lifting frame",
+      "Payload Lifting Frame",
+      "Arcrylic Protector"
+    ]
   }
 } as const;
 
@@ -175,8 +194,15 @@ export const UNIDENTIFIED_VALUE = "Unidentified";
 
 const RAW_COMPONENT_SYSTEMS = Object.keys(SATELLITE_COMPONENT_TAXONOMY) as ComponentSystem[];
 
-function alphaCompare(a: string, b: string) {
-  return a.localeCompare(b, undefined, { sensitivity: "base" });
+const thaiCollator = new Intl.Collator("th", { sensitivity: "base" });
+
+export function alphaCompare(a: string, b: string) {
+  const left = cleanComponentLabel(cleanSystemLabel(a));
+  const right = cleanComponentLabel(cleanSystemLabel(b));
+  if (left === UNIDENTIFIED_VALUE) return right === UNIDENTIFIED_VALUE ? 0 : 1;
+  if (right === UNIDENTIFIED_VALUE) return -1;
+  const languageOrder = Number(/^[\u0E00-\u0E7F]/.test(left)) - Number(/^[\u0E00-\u0E7F]/.test(right));
+  return languageOrder || thaiCollator.compare(left, right);
 }
 
 function sortedWithUnidentifiedLast(values: string[]): string[] {
@@ -244,4 +270,15 @@ export function findComponentPath(componentName: string) {
     }
   }
   return null;
+}
+
+// Preserve custom paths; only migrate the three components reassigned in the workbook.
+export function normalizeComponentModule(system: string, module: string, component: string): string {
+  if (normalizeSystem(system) === "Structure & Thermal Control (STCS)(ระบบโครงสร้างและอุณหภูมิ)"
+    && module === "Primary Structure(โครงสร้างหลัก)"
+    && componentsForModule(system, "ระบบดีดตัวดาวเทียม").includes(cleanComponentLabel(component))
+    && cleanComponentLabel(component) !== UNIDENTIFIED_VALUE) {
+    return "ระบบดีดตัวดาวเทียม";
+  }
+  return module;
 }

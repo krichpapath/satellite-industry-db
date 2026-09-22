@@ -57,3 +57,25 @@ test("currentRemoteSave never rejects, so it cannot skip the redirect", async ()
   // Rejection would throw past router.push and strand the user on the form.
   await assert.doesNotReject(async () => { await currentRemoteSave(); });
 });
+
+
+test("legacy separation records and new AIT records survive local save and reload", async () => {
+  const { loadDb, commit } = await import("./store");
+  const system = "Structure & Thermal Control (STCS)(ระบบโครงสร้างและอุณหภูมิ)";
+  window.localStorage.setItem("satdb.product-states-public.v1", "1");
+  window.localStorage.setItem("satdb.v3", JSON.stringify({ products: [{
+    product_id: "P-old", firm_id: "F001", product_name: "Existing ring", system,
+    module: "Primary Structure(โครงสร้างหลัก)", component_name: "วงแหวนแยกตัวจากจรวด (Separation Ring)", record_state: "draft"
+  }], vocab: { component_systems: [system], component_modules: [], component_names: [] } }));
+  assert.equal(loadDb().products[0].module, "ระบบดีดตัวดาวเทียม");
+  commit({ action: "create", table: "products", id: "P-ait", summary: "AIT regression check" }, (d) => {
+    d.products.push({ product_id: "P-ait", firm_id: "F001", product_name: "Test frame",
+      system: "AIT (การประกอบและทดสอบ)", module: "Mechanical Ground support Equipment",
+      component_name: "Lifting frame", record_state: "draft" });
+  });
+  const saved = loadDb();
+  assert.equal(saved.products[0].module, "ระบบดีดตัวดาวเทียม");
+  assert.equal(saved.products[0].record_state, "draft");
+  assert.equal(saved.products[1].component_name, "Lifting frame");
+  assert.ok(saved.vocab.component_systems.includes("AIT (การประกอบและทดสอบ)"));
+});

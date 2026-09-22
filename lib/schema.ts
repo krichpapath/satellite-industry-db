@@ -1,5 +1,6 @@
 import {
   COMPONENT_SYSTEMS,
+  alphaCompare,
   allComponentNames,
   modulesForSystem
 } from "./component-taxonomy";
@@ -323,8 +324,8 @@ export const DEFAULT_VOCAB: Vocab = {
     "LEO IoT NB-IoT over satellite"
   ],
   component_systems: [...COMPONENT_SYSTEMS],
-  component_modules: Array.from(new Set(COMPONENT_SYSTEMS.flatMap((system) => modulesForSystem(system)))),
-  component_names: Array.from(new Set(allComponentNames()))
+  component_modules: Array.from(new Set(COMPONENT_SYSTEMS.flatMap((system) => modulesForSystem(system)))).sort(alphaCompare),
+  component_names: Array.from(new Set(allComponentNames())).sort(alphaCompare)
 };
 
 export function roleAtLeast(current: Role, needed: Role): boolean {
@@ -341,4 +342,12 @@ export function rolePermissions(role: Role) {
     canExport: role === "Admin",
     canAdmin: role === "Admin"
   };
+}
+
+export function mergeComponentVocab(vocab: Partial<Vocab> = {}): Vocab {
+  const merged = { ...DEFAULT_VOCAB, ...vocab };
+  for (const key of ["component_systems", "component_modules", "component_names"] as const) {
+    merged[key] = Array.from(new Set([...DEFAULT_VOCAB[key], ...(vocab[key] ?? [])])).sort(alphaCompare);
+  }
+  return merged;
 }
